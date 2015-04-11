@@ -115,7 +115,11 @@ function add_to_job_queue(name) {
     name = name.slice(0,-8);
     star_class = 'icon-star';
   }
-  $('#job_queue').prepend('<li><a href="#"><span>'+ name +'</span><span class="starwidget '+ star_class +' pull-right" title=" star to keep in queue"></span></a></li>')
+  var job_new = '<li><a href="#"><span>'+ name +'</span>' +
+                '<span class="starwidget '+ star_class +' pull-right" title=" star to keep in queue"></span>' +
+                '<span class="minuswidget pull-right icon-minus" title=" remove from queue"></span>' +
+                '</a></li>';
+  $('#job_queue').prepend(job_new);
   $('span.starwidget').tooltip({delay:{ show: 1500, hide: 100}})
   //// action for loading gcode
   $('#job_queue li:first a').click(function(){
@@ -168,6 +172,11 @@ function add_to_job_queue(name) {
         $(this).addClass('icon-star-empty');
       });
     }
+    return false;
+  });
+  //// action for minus
+  $('#job_queue li:first a span.minuswidget').click(function() {
+    remove_queue_item($(this).parent().parent());
     return false;
   });
 }
