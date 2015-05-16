@@ -319,12 +319,12 @@ $(document).ready(function(){
         lasaurapp_version_reported = true;
       }
       // schedule next hardware poll
-      setTimeout(function() {poll_hardware_status()}, 4000);
+      setTimeout(function() {poll_hardware_status()}, 300);
     }).error(function() {
       // lost connection to server
       connect_btn_set_state(false);
       // schedule next hardware poll
-      setTimeout(function() {poll_hardware_status()}, 8000);
+      setTimeout(function() {poll_hardware_status()}, 1000);
     });
   }
   // kick off hardware polling
