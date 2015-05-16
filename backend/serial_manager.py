@@ -28,6 +28,7 @@ class SerialManagerClass:
 
         # status flags
         self.status = {}
+        self.last_poll = 0.0
         self.reset_status()
 
         self.LASAURGRBL_FIRST_STRING = "LasaurGrbl"
@@ -149,10 +150,11 @@ class SerialManagerClass:
         return bool(self.device)
 
     def get_hardware_status(self):
-        if self.is_queue_empty():
+        if self.is_queue_empty() and time.time() - self.last_poll > 0.1:
             # trigger a status report
             # will update for the next status request
             self.queue_gcode('?')
+            self.last_poll = time.time()
         return self.status
 
 
