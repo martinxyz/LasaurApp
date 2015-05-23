@@ -108,7 +108,7 @@ class DXFSpline(dxf_entity.DXFEntity):
                 temp.append(1 if ((t >= x[i - 1]) and (t < x[i])) else 0)
 
             # calculate the higher order nonrational basis functions
-            for k in range(2, order):
+            for k in range(2, order+1):
                 for i in range(0, nplusc - k):
                     # if the lower order basis function is zero skip the calculation
                     d = temp[i] * ((t-x[i]))/(x[i+k-1]-x[i]) if temp[i] != 0 else 0
@@ -119,17 +119,17 @@ class DXFSpline(dxf_entity.DXFEntity):
                     temp[i] = d + e
 
             if t == float(x[nplusc - 1]):
-                temp[npts] = 1
+                temp[npts - 1] = 1
 
             # calculate sum for denominator of rational basis functions
             total = 0
             for i in range(0, npts):
-                total += temp[i + 1] * weights[i]
+                total += temp[i] * weights[i]
 
             r = []
             # normalize rational basis
             for i in range(0, npts):
-                r.append((temp[i + 1] * weights[i])/(total) if total != 0 else 0)
+                r.append((temp[i] * weights[i])/(total) if total != 0 else 0)
 
             return r
 
