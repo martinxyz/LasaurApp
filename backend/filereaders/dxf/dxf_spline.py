@@ -89,6 +89,9 @@ class DXFSpline(dxf_entity.DXFEntity):
         return path
 
     def addSpline(self, path, degree, controls, x, weights, periodic, tolerance2):
+        # Implementation originates from Kevin Loney:
+        # https://github.com/Protospace/LasaurApp/blob/03809ba389f0750bb2e82cb84431c139db5852f5/backend/filereaders/dxf_reader.py
+        #
         # Implementation described in "An Introduction to NURBS" by David F. Rogers
         # Google books: http://books.google.ca/books?id=MaW4XiScJ7cC&lpg=PA1&pg=PP1#v=onepage&q&f=false
         # Example source: http://www.nar-associates.com/nurbs/c_code.html
@@ -99,8 +102,6 @@ class DXFSpline(dxf_entity.DXFEntity):
         nplusc = npts + order
 
         def _rationalBasis(t):
-            nplusc = npts + order
-
             # calculate the first order nonrational basis functions n[i]
             temp = []
             for i in range(1, nplusc):
@@ -141,8 +142,7 @@ class DXFSpline(dxf_entity.DXFEntity):
             # Perform matrix mutiplication between basis and control points
             for j in range(0, 3):
                 for i in range(0, npts):
-                    temp = nbasis[i] * controls[i][j]
-                    p[j] += temp
+                    p[j] += nbasis[i] * controls[i][j]
 
             # Only interested in the x and y coordinates
             return p[0:2]
