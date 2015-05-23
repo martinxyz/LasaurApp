@@ -26,11 +26,25 @@ def read_dxf(dxf_string, tolerance, optimize=True):
     parse_results = dxfReader.parse(dxf_string)
     if optimize:
         optimize_all(parse_results['boundarys'], tolerance)
-    # # flip y-axis
-    # for color,paths in parse_results['boundarys'].items():
-    # 	for path in paths:
-    # 		for vertex in path:
-    # 			vertex[1] = 610-vertex[1]
+    # flip y-axis
+    min_x = None
+    min_y = None
+    for color,paths in parse_results['boundarys'].items():
+        for path in paths:
+            for vertex in path:
+                vertex[1] = 610.0 - vertex[1]
+                if min_x is None or vertex[0] < min_x:
+                    min_x = vertex[0]
+                if min_y is None or vertex[1] < min_y:
+                    min_y = vertex[1]
+
+
+    for color,paths in parse_results['boundarys'].items():
+        for path in paths:
+            for vertex in path:
+                vertex[0] = vertex[0] - min_x
+                vertex[1] = vertex[1] - min_y
+
     return parse_results
 
 
