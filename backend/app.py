@@ -13,7 +13,7 @@ __author__  = 'Stefan Hechenberger <stefan@nortd.com>'
 
 ### Setup Argument Parser
 argparser = argparse.ArgumentParser(description='Run LasaurApp.', prog='lasaurapp')
-argparser.add_argument('port', metavar='serial_port', nargs='?', default=False,
+argparser.add_argument('port', metavar='serial_port', nargs='?', default=None,
                        help='serial port to the Lasersaur')
 argparser.add_argument('-v', '--version', action='version', version='%(prog)s ' + conf['version'],
                        default=False, help='bind to all network devices (default: bind to 127.0.0.1)')

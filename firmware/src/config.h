@@ -25,10 +25,9 @@
 
 #define VERSION 1500             // int or float
 #define BAUD_RATE 57600
-// #define DEBUG_IGNORE_SENSORS  // set for debugging
+#define DEBUG_IGNORE_SENSORS  // set for debugging
 // #define NOT_GEARED
 // #define ENABLE_3AXES
-
 
 #define CONFIG_X_STEPS_PER_MM 88.88888888 //microsteps/mm
 #define CONFIG_Y_STEPS_PER_MM 90.90909090 //microsteps/mm
@@ -142,6 +141,11 @@
 #define clear_vector_double(a) memset(a, 0.0, sizeof(a))
 #define max(a,b) (((a) > (b)) ? (a) : (b))
 #define min(a,b) (((a) < (b)) ? (a) : (b))
+
+#define DEBUG1_ON control_aux1_assist(true)
+#define DEBUG1_OFF control_aux1_assist(false)
+#define DEBUG2_ON control_aux2_assist(true)
+#define DEBUG2_OFF control_aux2_assist(false)
 
 
 #endif

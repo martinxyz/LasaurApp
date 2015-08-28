@@ -23,7 +23,7 @@ conf = {
     'network_host': '',                    # '' for all nics
     'network_port': 4444,
     'websocket_port': 4411,
-    'serial_port': '/dev/ttyACM0',         # set to '' for auto (req. firmware)
+    'serial_port': '/home/martin/LasaurApp/ardy_tes',         # set to '' for auto (req. firmware)
     'baudrate': 57600,
     'rootdir': None,                       # defined further down (../)
     'stordir': None,                       # defined further down
