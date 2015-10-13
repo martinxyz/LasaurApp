@@ -148,12 +148,11 @@ class SerialLoopClass(threading.Thread):
         self.pdata_count = 0
         self.pdata_chars = [None, None, None, None]
 
-        threading.Thread.__init__(self)
         self.stop_processing = False
 
         self.deamon = True  # kill thread when main thread exits
 
-        # lock mechanism for chared data
+        # lock mechanism for shared data
         # see: http://effbot.org/zone/thread-synchronization.htm
         self.lock = threading.Lock()
 
@@ -515,7 +514,7 @@ def find_controller(baudrate=conf['baudrate']):
             try:
                 s = serial.Serial(port=port, baudrate=baudrate, timeout=2.0)
                 lasaur_hello = s.read(8)
-                if lasaur_hello.find(INFO_HELLO) > -1:
+                if INFO_HELLO in lasaur_hello:
                     return port
                 s.close()
             except serial.SerialException:
@@ -527,7 +526,7 @@ def find_controller(baudrate=conf['baudrate']):
             try:
                 s = serial.Serial(port=i, baudrate=baudrate, timeout=2.0)
                 lasaur_hello = s.read(8)
-                if lasaur_hello.find(INFO_HELLO) > -1:
+                if INFO_HELLO in lasaur_hello:
                     return s.portstr
                 s.close()
             except serial.SerialException:
