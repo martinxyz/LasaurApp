@@ -76,7 +76,7 @@ def build():
     BUILDNAME = "LasaurGrbl"
     OBJECTS  = ["main", "serial", "protocol", "planner", "sense_control", "stepper"]
              
-    COMPILE = AVRGCCAPP + " -Wall -Os -DF_CPU=" + CLOCK + " -mmcu=" + DEVICE + " -I. -ffunction-sections" + " --std=c99"
+    COMPILE = AVRGCCAPP + " -Wall -O2 -flto -DF_CPU=" + CLOCK + " -mmcu=" + DEVICE + " -I. -ffunction-sections" + " --std=c99"
 
     for fileobj in OBJECTS:
       os.system('%(compile)s -c %(obj)s.c -o %(obj)s.o' % {'compile': COMPILE, 'obj':fileobj});

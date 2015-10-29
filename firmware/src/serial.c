@@ -105,7 +105,7 @@ void serial_init() {
 
 
 
-inline void serial_write(uint8_t data) {
+void serial_write(uint8_t data) {
   // Calculate next head
   uint8_t next_head = tx_buffer_head + 1;
   if (next_head == TX_BUFFER_SIZE) { next_head = 0; }  // wrap around
@@ -124,7 +124,7 @@ inline void serial_write(uint8_t data) {
 }
 
 
-inline void serial_write_param(uint8_t param, double val) {
+void serial_write_param(uint8_t param, double val) {
   // val to be [-134217.728, 134217.727]
   // three decimals are retained
   int32_t numint = lround(val*1000)+134217728L;
@@ -154,7 +154,7 @@ ISR(USART_UDRE_vect) {
 }
 
 
-inline uint8_t serial_read() {
+uint8_t serial_read() {
   // return data, advance tail
   uint8_t data = rx_buffer[rx_buffer_tail];
   if (++rx_buffer_tail == RX_BUFFER_SIZE) {rx_buffer_tail = 0;}  // increment  
@@ -221,7 +221,7 @@ ISR(USART_RX_vect) {
 }
 
 
-inline uint8_t serial_protocol_read() {
+uint8_t serial_protocol_read() {
   // called from protocol loop
   while (raster_mode) {
     // Block while in raster mode.
@@ -269,7 +269,7 @@ inline uint8_t serial_protocol_read() {
 }
 
 
-inline uint8_t serial_raster_read() {
+uint8_t serial_raster_read() {
   /** raster buffer ********************************
   * The rx_buffer doubles as a raster buffer. This *
   * depends on the right sequence of commands:     *
@@ -307,7 +307,7 @@ inline uint8_t serial_raster_read() {
 }
 
 
-inline uint8_t serial_data_available() {
+uint8_t serial_data_available() {
   return rx_buffer_tail != rx_buffer_head;
 }
 

@@ -145,7 +145,7 @@ void protocol_init() {
 }
 
 
-inline void protocol_loop() {
+void protocol_loop() {
   uint8_t chr;
   while(true) {
     chr = serial_protocol_read();  // blocks until there is data
@@ -181,7 +181,7 @@ inline void protocol_loop() {
 
 
 
-inline void on_cmd(uint8_t command) {
+void on_cmd(uint8_t command) {
   uint8_t cs;
   switch(command) {
     case CMD_NONE:
@@ -275,7 +275,7 @@ inline void on_cmd(uint8_t command) {
 
 
 
-inline void on_param(uint8_t parameter) {
+void on_param(uint8_t parameter) {
   double val;
   if(pdata.count == 4) {
     switch(parameter) {
@@ -352,22 +352,22 @@ inline void on_param(uint8_t parameter) {
 }
 
 
-inline void protocol_request_status() {
+void protocol_request_status() {
   status_requested = true;
 }
 
-inline void protocol_request_superstatus() {
+void protocol_request_superstatus() {
   superstatus_requested = true;
 }
 
 
-inline void protocol_mark_underrun() {
+void protocol_mark_underrun() {
   rx_buffer_underruns += 1;
   rx_buffer_underruns_reported = false;
 }
 
 
-inline void protocol_idle() {
+void protocol_idle() {
   // Continuously called in protocol_loop
   // Also called when the protocol loop is blocked by
   // one of the following conditions:
@@ -480,7 +480,7 @@ inline void protocol_idle() {
 
 
 
-inline double get_curent_value() {
+double get_curent_value() {
   // returns a number based on the current data chars
   // chars expected to be extended ascii [128,255]
   // 28bit total, three decimals are restored
@@ -540,14 +540,14 @@ static uint16_t stack_clearance() {
 
 
 
-// inline double num_from_chars(uint8_t char0, uint8_t char1, uint8_t char2, uint8_t char3) {
+// double num_from_chars(uint8_t char0, uint8_t char1, uint8_t char2, uint8_t char3) {
 //   // chars expected to be extended ascii [128,255]
 //   // 28bit total, three decimals are restored
 //   // number is in [-134217.728, 134217.727] 
 //   return ((((char3-128)*2097152+(char2-128)*16384+(char1-128)*128+(char0-128))-134217728)/1000.0);
 // }
 
-// inline void chars_from_num(num, uint8_t* char0, uint8_t* char1, uint8_t* char2, uint8_t* char3) {
+// void chars_from_num(num, uint8_t* char0, uint8_t* char1, uint8_t* char2, uint8_t* char3) {
 //   // num to be [-134217.728, 134217.727]
 //   // three decimals are retained
 //   uint32_t num = lround(num*1000 + 134217728);

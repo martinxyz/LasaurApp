@@ -441,7 +441,7 @@ ISR(TIMER1_COMPA_vect) {
 // This function determines an acceleration velocity change every CYCLES_PER_ACCELERATION_TICK by
 // keeping track of the number of elapsed cycles during a de/ac-celeration. The code assumes that
 // step_events occur significantly more often than the acceleration velocity iterations.
-inline bool acceleration_tick() {
+bool acceleration_tick() {
   acceleration_tick_counter += cycles_per_step_event;
   if(acceleration_tick_counter > CYCLES_PER_ACCELERATION_TICK) {
     acceleration_tick_counter -= CYCLES_PER_ACCELERATION_TICK;
@@ -454,7 +454,7 @@ inline bool acceleration_tick() {
 
 // Configures the prescaler and ceiling of timer 1 to produce the given rate as accurately as possible.
 // Returns the actual number of cycles per interrupt
-inline uint32_t config_step_timer(uint32_t cycles) {
+uint32_t config_step_timer(uint32_t cycles) {
   uint16_t ceiling;
   uint16_t prescaler;
   uint32_t actual_cycles;
@@ -492,7 +492,7 @@ inline uint32_t config_step_timer(uint32_t cycles) {
 }
 
 
-inline void adjust_speed( uint32_t steps_per_minute ) {
+void adjust_speed( uint32_t steps_per_minute ) {
   // steps_per_minute is typicaly just adjusted_rate
   if (steps_per_minute < MINIMUM_STEPS_PER_MINUTE) { steps_per_minute = MINIMUM_STEPS_PER_MINUTE; }
   cycles_per_step_event = config_step_timer((CYCLES_PER_MICROSECOND*1000000*60)/steps_per_minute);
@@ -504,7 +504,7 @@ inline void adjust_speed( uint32_t steps_per_minute ) {
 }
 
 
-inline void adjust_intensity( uint8_t intensity ) {
+void adjust_intensity( uint8_t intensity ) {
   control_laser_intensity(intensity);
 
   // depending on intensity adapt PWM freq
@@ -525,7 +525,7 @@ inline void adjust_intensity( uint8_t intensity ) {
 
 
 
-inline static void homing_cycle(bool x_axis, bool y_axis, bool z_axis, bool reverse_direction, uint32_t microseconds_per_pulse) {
+static void homing_cycle(bool x_axis, bool y_axis, bool z_axis, bool reverse_direction, uint32_t microseconds_per_pulse) {
   
   uint32_t step_delay = microseconds_per_pulse - CONFIG_PULSE_MICROSECONDS;
   uint8_t out_bits = DIRECTION_MASK;
@@ -597,15 +597,15 @@ inline static void homing_cycle(bool x_axis, bool y_axis, bool z_axis, bool reve
   return;
 }
 
-inline static void approach_limit_switch(bool x, bool y, bool z) {
+static void approach_limit_switch(bool x, bool y, bool z) {
   homing_cycle(x, y, z,false, CONFIG_HOMINGRATE);
 }
 
-inline static void leave_limit_switch(bool x, bool y, bool z) {
+static void leave_limit_switch(bool x, bool y, bool z) {
   homing_cycle(x, y, z, true, CONFIG_HOMINGRATE);
 }
 
-inline void stepper_homing_cycle() {  
+void stepper_homing_cycle() {  
   // home the x and y axis
   #ifdef ENABLE_3AXES
   approach_limit_switch(true, true, true);
