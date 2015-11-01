@@ -137,7 +137,7 @@ inline void serial_write_param(uint8_t param, double val) {
 
 
 // tx interrupt, called when UDR0 gets empty
-SIGNAL(USART_UDRE_vect) {
+ISR(USART_UDRE_vect) {
   uint8_t tail = tx_buffer_tail;  // optimize for volatile
   
   if (notify_chunk_processed) {
@@ -172,7 +172,7 @@ inline uint8_t serial_read() {
 
 
 // rx interrupt, called whenever a new byte is in UDR0
-SIGNAL(USART_RX_vect) {
+ISR(USART_RX_vect) {
   uint8_t data = UDR0;
   // transmission error check
   if (first_transmission) {  // ignore data
