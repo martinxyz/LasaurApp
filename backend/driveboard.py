@@ -13,108 +13,6 @@ import statserver
 
 __author__  = 'Stefan Hechenberger <stefan@nortd.com>'
 
-
-
-################ SENDING PROTOCOL
-CMD_STOP = "\x01"
-CMD_RESUME = "\x02"
-CMD_STATUS = "\x03"
-CMD_SUPERSTATUS = "\x04"
-CMD_CHUNK_PROCESSED = "\x05"
-CMD_RASTER_DATA_START = "\x07"
-CMD_RASTER_DATA_END = "\x08"
-STATUS_END = '\x09'
-
-CMD_NONE = "A"
-CMD_LINE = "B"
-CMD_DWELL = "C"
-CMD_RASTER = "D"
-
-CMD_REF_RELATIVE = "E"
-CMD_REF_ABSOLUTE = "F"
-
-CMD_HOMING = "G"
-
-CMD_SET_OFFSET_TABLE = "H"
-CMD_SET_OFFSET_CUSTOM = "I"
-CMD_SEL_OFFSET_TABLE = "J"
-CMD_SEL_OFFSET_CUSTOM = "K"
-
-CMD_AIR_ENABLE = "L"
-CMD_AIR_DISABLE = "M"
-CMD_AUX1_ENABLE = "N"
-CMD_AUX1_DISABLE = "O"
-CMD_AUX2_ENABLE = "P"
-CMD_AUX2_DISABLE = "Q"
-
-
-PARAM_TARGET_X = "x"
-PARAM_TARGET_Y = "y"
-PARAM_TARGET_Z = "z"
-PARAM_FEEDRATE = "f"
-PARAM_INTENSITY = "s"
-PARAM_DURATION = "d"
-PARAM_PIXEL_WIDTH = "p"
-PARAM_OFFTABLE_X = "h"
-PARAM_OFFTABLE_Y = "i"
-PARAM_OFFTABLE_Z = "j"
-PARAM_OFFCUSTOM_X = "k"
-PARAM_OFFCUSTOM_Y = "l"
-PARAM_OFFCUSTOM_Z = "m"
-
-################
-
-
-################ RECEIVING PROTOCOL
-
-# status: error flags
-ERROR_SERIAL_STOP_REQUEST = '!'
-ERROR_RX_BUFFER_OVERFLOW = '"'
-
-ERROR_LIMIT_HIT_X1 = '$'
-ERROR_LIMIT_HIT_X2 = '%'
-ERROR_LIMIT_HIT_Y1 = '&'
-ERROR_LIMIT_HIT_Y2 = '*'
-ERROR_LIMIT_HIT_Z1 = '+'
-ERROR_LIMIT_HIT_Z2 = '-'
-
-ERROR_INVALID_MARKER = '#'
-ERROR_INVALID_DATA = ':'
-ERROR_INVALID_COMMAND = '<'
-ERROR_INVALID_PARAMETER ='>'
-ERROR_TRANSMISSION_ERROR ='='
-
-# status: info flags
-INFO_IDLE_YES = 'A'
-INFO_DOOR_OPEN = 'B'
-INFO_CHILLER_OFF = 'C'
-
-# status: info params
-INFO_POS_X = 'x'
-INFO_POS_Y = 'y'
-INFO_POS_Z = 'z'
-INFO_VERSION = 'v'
-INFO_BUFFER_UNDERRUN = 'w'
-INFO_STACK_CLEARANCE = 'u'
-
-INFO_HELLO = '~'
-
-INFO_OFFCUSTOM_X = 'a'
-INFO_OFFCUSTOM_Y = 'b'
-INFO_OFFCUSTOM_Z = 'c'
-# INFO_TARGET_X = 'd'
-# INFO_TARGET_Y = 'e'
-# INFO_TARGET_Z = 'f'
-INFO_FEEDRATE = 'g'
-INFO_INTENSITY = 'h'
-INFO_DURATION = 'i'
-INFO_PIXEL_WIDTH = 'j'
-################
-
-
-
-# reverse lookup for commands, for debugging
-# NOTE: have to be in sync with above definitions
 markers_tx = {
     "\x01": "CMD_STOP",
     "\x02": "CMD_RESUME",
@@ -180,6 +78,7 @@ markers_rx = {
     '<': "ERROR_INVALID_COMMAND",
     '>': "ERROR_INVALID_PARAMETER",
     '=': "ERROR_TRANSMISSION_ERROR",
+    ',': "ERROR_USART_DATA_OVERRUN",
 
     # status: info flags
     'A': "INFO_IDLE_YES",
@@ -208,7 +107,11 @@ markers_rx = {
     'j': "INFO_PIXEL_WIDTH",
 }
 
-
+# create a global constant for each of the names above
+for char, name in markers_tx.items():
+    globals()[name] = char
+for char, name in markers_rx.items():
+    globals()[name] = char
 
 
 SerialLoop = None
@@ -434,6 +337,9 @@ class SerialLoopClass(threading.Thread):
                 elif char == ERROR_TRANSMISSION_ERROR:
                     self._s['stops']['transmission'] = True
                     print "ERROR firmware: transmission"
+                elif char == ERROR_USART_DATA_OVERRUN:
+                    self._s['stops']['usart'] = True
+                    print "ERROR firmware: USART data overrun"
                 else:
                     print "ERROR: invalid stop error marker"
                 # in stop mode, print recent transmission

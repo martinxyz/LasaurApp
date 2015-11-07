@@ -173,7 +173,12 @@ inline uint8_t serial_read() {
 
 // rx interrupt, called whenever a new byte is in UDR0
 ISR(USART_RX_vect) {
+  uint8_t error_flags = UCSR0A;
   uint8_t data = UDR0;
+  if (error_flags & (1<<DOR0)) {
+    // we did not read UDR0 fast enough
+    stepper_request_stop(STOPERROR_USART_DATA_OVERRUN);
+  }
   // transmission error check
   if (first_transmission) {  // ignore data
     first_transmission = false;
