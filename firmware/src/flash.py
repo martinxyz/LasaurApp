@@ -74,7 +74,7 @@ def build():
     BITRATE = "115200"
 
     BUILDNAME = "LasaurGrbl"
-    OBJECTS  = ["main", "serial", "gcode", "planner", "sense_control", "stepper"]
+    OBJECTS  = ["main", "serial", "protocol", "planner", "sense_control", "stepper"]
              
     COMPILE = AVRGCCAPP + " -Wall -Os -DF_CPU=" + CLOCK + " -mmcu=" + DEVICE + " -I. -ffunction-sections" + " --std=c99"
 
