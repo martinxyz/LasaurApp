@@ -668,10 +668,21 @@ def homing():
     """Run homing cycle."""
     global SerialLoop
     with SerialLoop.lock:
-        if SerialLoop._status['ready'] or SerialLoop._status['stops']:
-            SerialLoop.send_command(CMD_HOMING)
-        else:
-            print "WARN: ignoring homing command while job running"
+        print SerialLoop._status
+        # FIXME: the check below breaks for python scripts that import
+        # this file and start with a homing comand in a very bad way:
+        # it skips the homing because _status[] has not yet been
+        # changed from the defaults, and then continues the job. Do we
+        # really need this check at this level? If yes, we probably
+        # should throw an exception to prevent the script from sending
+        # the commands that follow the homing.
+        #
+        #if SerialLoop._status['ready'] or SerialLoop._status['stops']:
+        #    SerialLoop.send_command(CMD_HOMING)
+        #else:
+        #    print "WARN: ignoring homing command while job running"
+
+        SerialLoop.send_command(CMD_HOMING)
 
 
 def feedrate(val):
