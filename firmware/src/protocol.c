@@ -415,6 +415,7 @@ void protocol_idle() {
       serial_write(stop_code);
     }
 
+#ifndef DEBUG_IGNORE_SENSORS
     // always report limits
     if (SENSE_X1_LIMIT && stop_code != STOPERROR_LIMIT_HIT_X1) {
       serial_write(STOPERROR_LIMIT_HIT_X1);
@@ -434,6 +435,7 @@ void protocol_idle() {
     if (SENSE_Z2_LIMIT && stop_code != STOPERROR_LIMIT_HIT_Z2) {
       serial_write(STOPERROR_LIMIT_HIT_Z2);
     }
+#endif
 
     // position, an absolute coord, report relative to current offset
     serial_write_param(INFO_POS_X, stepper_get_position_x()-st.offsets[3*st.offselect+X_AXIS]);

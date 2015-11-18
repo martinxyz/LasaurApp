@@ -33,7 +33,8 @@ def flash_upload(serial_port=serial_port, resources_dir=resources_dir, firmware_
         DEVICE = "atmega328p"
         CLOCK = "16000000"
         PROGRAMMER = "arduino"
-        BITRATE = "115200"
+        #BITRATE = "115200"
+        BITRATE = "57600" # for some reason, this is needed to flash my Duemilanove but not for the driveboard
      
         if sys.platform == "darwin":  # OSX
             AVRDUDEAPP    = os.path.join(resources_dir, "firmware/tools_osx/avrdude")

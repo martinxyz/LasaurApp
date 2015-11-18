@@ -210,9 +210,12 @@ ISR(TIMER2_OVF_vect) {
 // The bresenham line tracer algorithm controls all three stepper outputs simultaneously.
 ISR(TIMER1_COMPA_vect) {
   if (busy) {  // The busy-flag is used to avoid reentering this interrupt
+    DEBUG2_ON;
+    DEBUG2_OFF;
     delayed_microsteps++;
     return;
   }
+  DEBUG1_ON;
   busy = true;
   if (stop_requested) {
     // go idle
@@ -222,6 +225,7 @@ ISR(TIMER1_COMPA_vect) {
     // because it could still be adding blocks after this call.
     planner_reset_block_buffer();
     busy = false;
+    DEBUG1_OFF;
     return;
   }
 
@@ -275,6 +279,7 @@ ISR(TIMER1_COMPA_vect) {
     if (current_block == NULL) {
       stepper_stop_processing();
       busy = false;
+      DEBUG1_OFF;
       return;       
     }      
     if (current_block->type == TYPE_LINE) {
@@ -427,6 +432,7 @@ ISR(TIMER1_COMPA_vect) {
   }
   
   busy = false;
+  DEBUG1_OFF;
 }
 
 
