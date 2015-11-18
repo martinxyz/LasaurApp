@@ -68,6 +68,9 @@ static int32_t counter_x,       // Counter variables for the bresenham line trac
                counter_y,
                counter_z;
 static uint32_t step_events_completed; // The number of step events executed in the current block
+static uint32_t steps_until_next_pixel; // Steps remaining, scaled by a constant
+static uint8_t raster_data_remaining; // number of bytes remaining
+static uint8_t * raster_data_next; // pointer to next raster byte
 static volatile bool busy;  // true whe stepper ISR is in already running
 
 // Variables used by the trapezoid generation
@@ -78,7 +81,6 @@ static uint32_t adjusted_rate;                // The current rate of step_events
 static volatile bool processing_flag;         // indicates if blocks are being processed
 static volatile bool stop_requested;          // when set to true stepper interrupt will go idle on next entry
 static volatile uint8_t stop_status;          // yields the reason for a stop request
-
 
 // prototypes for static functions (non-accesible from other files)
 static bool acceleration_tick();
@@ -273,7 +275,7 @@ ISR(TIMER1_COMPA_vect) {
       busy = false;
       return;       
     }      
-    if (current_block->type == TYPE_LINE || current_block->type == TYPE_RASTER_LINE) {
+    if (current_block->type == TYPE_LINE) {
       // starting on new line block
       adjusted_rate = current_block->initial_rate;
       acceleration_tick_counter = CYCLES_PER_ACCELERATION_TICK/2; // start halfway, midpoint rule.
@@ -282,12 +284,21 @@ ISR(TIMER1_COMPA_vect) {
       counter_y = counter_x;
       counter_z = counter_x;
       step_events_completed = 0;
+      
+
+      if (current_block->raster) {
+        raster_data_next = current_block->raster->data;
+        raster_data_remaining = current_block->raster->length;
+        steps_until_next_pixel = 0;
+      } else {
+        raster_data_remaining = 0;
+      }
     }
   }
 
   // process current block, populate out_bits (or handle other commands)
   switch (current_block->type) {
-    case TYPE_LINE: case TYPE_RASTER_LINE:
+    case TYPE_LINE:
       ////// Execute step displacement profile by bresenham line algorithm
       out_bits = current_block->direction_bits;
       counter_x += current_block->steps_x;
@@ -372,19 +383,20 @@ ISR(TIMER1_COMPA_vect) {
           }
           // Special case raster line. 
           // Adjust intensity according raster buffer.
-          if (current_block->type == TYPE_RASTER_LINE) {
-            if ((step_events_completed % current_block->pixel_steps) == 1) {
-              // after every pixel width get the next raster value
-              // disable nested interrupts
-              // this is to prevent race conditions with the serial interrupt
-              // over the rx_buffer variables.
-              cli(); 
-              uint8_t chr = serial_raster_read();
-              sei();
-              // map [128,255] -> [0, nominal_laser_intensity]
-              // (chr-128)*2 * (255/current_block->nominal_laser_intensity)
-              adjust_intensity( (510*(chr-128))/current_block->nominal_laser_intensity );
+          if (current_block->steps_per_pixel) {
+            const uint32_t one_step = (1<<14); // same as in planner.c
+            if (steps_until_next_pixel < one_step) {
+              if (raster_data_remaining) {
+                raster_data_remaining--;
+                uint8_t chr = *raster_data_next++;
+                // map [0, 127] -> [0, 255]
+                adjust_intensity(chr*255/127);
+              } else {
+                adjust_intensity(current_block->nominal_laser_intensity);
+              }
+              steps_until_next_pixel += current_block->steps_per_pixel;
             }
+            steps_until_next_pixel -= one_step;
           }
         }
       } else {  // block finished
@@ -499,8 +511,7 @@ void adjust_speed( uint32_t steps_per_minute ) {
   // beam dynamics
   uint8_t adjusted_intensity = current_block->nominal_laser_intensity * 
                                ((float)steps_per_minute/(float)current_block->nominal_rate);
-  uint8_t constrained_intensity = max(adjusted_intensity, 0);
-  adjust_intensity(constrained_intensity);
+  adjust_intensity(adjusted_intensity);
 }
 
 

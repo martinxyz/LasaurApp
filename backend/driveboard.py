@@ -2,8 +2,10 @@
 import os
 import sys
 import time
+import math
 import json
 import copy
+import numpy
 import threading
 import serial
 import serial.tools.list_ports
@@ -19,14 +21,11 @@ markers_tx = {
     "\x03": "CMD_STATUS",
     "\x04": "CMD_SUPERSTATUS",
     "\x05": "CMD_CHUNK_PROCESSED",
-    "\x07": "CMD_RASTER_DATA_START",
-    "\x08": "CMD_RASTER_DATA_END",
     "\x09": "STATUS_END",
 
     "A": "CMD_NONE",
     "B": "CMD_LINE",
     "C": "CMD_DWELL",
-    "D": "CMD_RASTER",
 
     "E": "CMD_REF_RELATIVE",
     "F": "CMD_REF_ABSOLUTE",
@@ -45,14 +44,14 @@ markers_tx = {
     "P": "CMD_AUX2_ENABLE",
     "Q": "CMD_AUX2_DISABLE",
 
-
     "x": "PARAM_TARGET_X",
     "y": "PARAM_TARGET_Y",
     "z": "PARAM_TARGET_Z",
     "f": "PARAM_FEEDRATE",
     "s": "PARAM_INTENSITY",
     "d": "PARAM_DURATION",
-    "p": "PARAM_PIXEL_WIDTH",
+    "p": "PARAM_PIXELS_PER_MM",
+    "r": "PARAM_RASTER_BYTES",
     "h": "PARAM_OFFTABLE_X",
     "i": "PARAM_OFFTABLE_Y",
     "j": "PARAM_OFFTABLE_Z",
@@ -77,6 +76,7 @@ markers_rx = {
     ':': "ERROR_INVALID_DATA",
     '<': "ERROR_INVALID_COMMAND",
     '>': "ERROR_INVALID_PARAMETER",
+    "(": "ERROR_VALUE_OUT_OF_RANGE",
     '=': "ERROR_TRANSMISSION_ERROR",
     ',': "ERROR_USART_DATA_OVERRUN",
 
@@ -104,7 +104,7 @@ markers_rx = {
     'g': "INFO_FEEDRATE",
     'h': "INFO_INTENSITY",
     'i': "INFO_DURATION",
-    'j': "INFO_PIXEL_WIDTH",
+    'j': "INFO_PIXELS_PER_MM",
 }
 
 # create a global constant for each of the names above
@@ -113,6 +113,11 @@ for char, name in markers_tx.items():
 for char, name in markers_rx.items():
     globals()[name] = char
 
+## more firmware constants, they need wo match device firmware
+TX_CHUNK_SIZE = 16 # number of bytes written to the device in one go
+RX_CHUNK_SIZE = 32
+FIRMBUF_SIZE = 256
+RASTER_BYTES_MAX = 60
 
 SerialLoop = None
 
@@ -125,11 +130,6 @@ class SerialLoopClass(threading.Thread):
         self.tx_buffer = []
         self.tx_pos = 0
 
-        # TX_CHUNK_SIZE - this is the number of bytes to be
-        # written to the device in one go. It needs to match the device.
-        self.TX_CHUNK_SIZE = 16
-        self.RX_CHUNK_SIZE = 32
-        self.FIRMBUF_SIZE = 256  # needs to match device firmware
         self.firmbuf_used = 0
 
         # used for calculating percentage done
@@ -194,7 +194,7 @@ class SerialLoopClass(threading.Thread):
             'feedrate': 0.0,
             'intensity': 0.0,
             'duration': 0.0,
-            'pixelwidth': 0.0
+            'pixels_per_mm': 0.0
         }
         self._s = copy.deepcopy(self._status)
 
@@ -219,6 +219,14 @@ class SerialLoopClass(threading.Thread):
         self.tx_buffer.append(param)
         self.job_size += 5
 
+
+    def send_raster_data(self, data):
+        for byte in data:
+            v = byte + 128
+            assert v <= 255
+            # FIXME: not very memory efficient, check if it is a problem when large files are queued
+            self.tx_buffer.append(chr(v))
+        self.job_size += len(data)
 
 
     def run(self):
@@ -268,11 +276,11 @@ class SerialLoopClass(threading.Thread):
 
 
     def _serial_read(self):
-        for char in self.device.read(self.RX_CHUNK_SIZE):
+        for char in self.device.read(RX_CHUNK_SIZE):
             # sys.stdout.write('('+char+','+str(ord(char))+')')
             if ord(char) < 32:  ### flow
                 if char == CMD_CHUNK_PROCESSED:
-                    self.firmbuf_used -= self.TX_CHUNK_SIZE
+                    self.firmbuf_used -= TX_CHUNK_SIZE
                     if self.firmbuf_used < 0:
                         print "ERROR: firmware buffer tracking to low"
                 elif char == STATUS_END:
@@ -402,8 +410,8 @@ class SerialLoopClass(threading.Thread):
                     self._s['intensity'] = num
                 elif char == INFO_DURATION:
                     self._s['duration'] = num
-                elif char == INFO_PIXEL_WIDTH:
-                    self._s['pixelwidth'] = num
+                elif char == INFO_PIXELS_PER_MM:
+                    self._s['pixels_per_mm'] = num
                 elif char == INFO_STACK_CLEARANCE:
                     self._s['stackclear'] = num
                 else:
@@ -446,10 +454,10 @@ class SerialLoopClass(threading.Thread):
         ### send buffer chunk
         if self.tx_buffer and len(self.tx_buffer) > self.tx_pos:
             if not self._paused:
-                if (self.FIRMBUF_SIZE - self.firmbuf_used) > self.TX_CHUNK_SIZE:
+                if (FIRMBUF_SIZE - self.firmbuf_used) > TX_CHUNK_SIZE:
                     try:
-                        # to_send = ''.join(islice(self.tx_buffer, 0, self.TX_CHUNK_SIZE))
-                        to_send = self.tx_buffer[self.tx_pos:self.tx_pos+self.TX_CHUNK_SIZE]
+                        # to_send = ''.join(islice(self.tx_buffer, 0, TX_CHUNK_SIZE))
+                        to_send = self.tx_buffer[self.tx_pos:self.tx_pos+TX_CHUNK_SIZE]
                         expectedSent = len(to_send)
                         # by protocol duplicate every char
                         to_send_double = []
@@ -466,7 +474,7 @@ class SerialLoopClass(threading.Thread):
                         else:
                             assumedSent = expectedSent
                             self.firmbuf_used += assumedSent
-                            if self.firmbuf_used > self.FIRMBUF_SIZE:
+                            if self.firmbuf_used > FIRMBUF_SIZE:
                                 print "ERROR: firmware buffer tracking too high"
                         if time.time() - t_prewrite > 0.1:
                             print "WARN: write delay 1"
@@ -681,10 +689,10 @@ def duration(val):
     with SerialLoop.lock:
         SerialLoop.send_param(PARAM_DURATION, val)
 
-def pixelwidth(val):
+def pixels_per_mm(val):
     global SerialLoop
     with SerialLoop.lock:
-        SerialLoop.send_param(PARAM_PIXEL_WIDTH, val)
+        SerialLoop.send_param(PARAM_PIXELS_PER_MM, val)
 
 def relative():
     global SerialLoop
@@ -705,15 +713,37 @@ def move(x, y, z=0.0):
         SerialLoop.send_param(PARAM_TARGET_Z, z)
         SerialLoop.send_command(CMD_LINE)
 
-def rastermove(x, y, z=0.0):
+def _raster_move_raw(x, y, data):
+    """Raster move with data length limited by firmware"""
     global SerialLoop
     with SerialLoop.lock:
+        assert len(data) <= RASTER_BYTES_MAX
         SerialLoop.send_param(PARAM_TARGET_X, x)
         SerialLoop.send_param(PARAM_TARGET_Y, y)
-        SerialLoop.send_param(PARAM_TARGET_Z, z)
-        SerialLoop.send_command(CMD_RASTER)
+        SerialLoop.send_param(PARAM_RASTER_BYTES, len(data))
+        SerialLoop.send_command(CMD_LINE)
+        SerialLoop.send_raster_data(data)
+        SerialLoop.send_param(PARAM_RASTER_BYTES, 0)
 
-
+def raster_line(x0, y0, x1, y1, data, move_to_start=True):
+    """Raster move with arbitrary data length"""
+    global SerialLoop
+    data = numpy.array(data, dtype='uint8', copy=False)
+    intensity(0)
+    if move_to_start:
+        move(x0, y0)
+    length = math.hypot(x0-x1, y0-y1)
+    bytes_total = len(data)
+    ppmm = bytes_total/length
+    pixels_per_mm(ppmm)
+    n = RASTER_BYTES_MAX
+    while len(data) > 0:
+        chunk, data = data[:n], data[n:] 
+        fac = float(len(data))/bytes_total
+        x = fac*x0 + (1-fac)*x1
+        y = fac*y0 + (1-fac)*y1
+        _raster_move_raw(x, y, chunk)
+    pixels_per_mm(0)
 
 
 def job(jobdict):

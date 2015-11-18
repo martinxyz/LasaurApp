@@ -23,16 +23,14 @@
                  
 #include "config.h"
 
-
 // Command types the planner and stepper can schedule for execution 
 #define TYPE_LINE 0
-#define TYPE_RASTER_LINE 1
-#define TYPE_AIR_ASSIST_ENABLE 2
-#define TYPE_AIR_ASSIST_DISABLE 3
-#define TYPE_AUX1_ASSIST_ENABLE 4
-#define TYPE_AUX1_ASSIST_DISABLE 5
-#define TYPE_AUX2_ASSIST_ENABLE 6
-#define TYPE_AUX2_ASSIST_DISABLE 7
+#define TYPE_AIR_ASSIST_ENABLE 1
+#define TYPE_AIR_ASSIST_DISABLE 2
+#define TYPE_AUX1_ASSIST_ENABLE 3
+#define TYPE_AUX1_ASSIST_DISABLE 4
+#define TYPE_AUX2_ASSIST_ENABLE 5
+#define TYPE_AUX2_ASSIST_DISABLE 6
 
 #define planner_control_air_assist_enable() planner_command(TYPE_AIR_ASSIST_ENABLE)
 #define planner_control_air_assist_disable() planner_command(TYPE_AIR_ASSIST_DISABLE)
@@ -40,6 +38,13 @@
 #define planner_control_aux1_assist_disable() planner_command(TYPE_AUX1_ASSIST_DISABLE)
 #define planner_control_aux2_assist_enable() planner_command(TYPE_AUX2_ASSIST_ENABLE)
 #define planner_control_aux2_assist_disable() planner_command(TYPE_AUX2_ASSIST_DISABLE)
+
+// Optional raster data for a TYPE_LINE block
+#define RASTER_BYTES_MAX 60
+typedef struct {
+  uint8_t length;
+  uint8_t data[RASTER_BYTES_MAX];
+} raster_t;
 
 // This struct is used when buffering the setup for each linear movement "nominal" values are as specified in 
 // the source g-code and may never actually be reached if acceleration management is active.
@@ -56,6 +61,7 @@ typedef struct {
   double vmax_junction;               // max junction speed (mm/min) based on angle between segments, accel and deviation settings
   double millimeters;                 // The total travel of this block in mm
   uint8_t nominal_laser_intensity;    // 0-255 is 0-100% percentage
+  uint32_t steps_per_pixel;           // microsteps per raster pixel (always more than one), scaled by a constant
   bool recalculate_flag;              // Planner flag to recalculate trapezoids on entry junction
   bool nominal_length_flag;           // Planner flag for nominal speed always reached
   // Settings for the trapezoid generator
@@ -64,17 +70,17 @@ typedef struct {
   int32_t rate_delta;                 // The steps/minute to add or subtract when changing speed (must be positive)
   uint32_t accelerate_until;          // The index of the step event on which to stop acceleration
   uint32_t decelerate_after;          // The index of the step event on which to start decelerating
-
-  uint16_t pixel_steps;               // Number of steps for each raster pixel (only in TYPE_RASTER_LINE)
+  raster_t * raster;                  // Raster buffer, NULL if not a raster move
 } block_t;
-      
+
 // Initialize the motion plan subsystem      
 void planner_init();
 
 // Add a new linear movement to the buffer.
 // x, y and z is the signed, absolute target position in millimaters.
 // Feed rate specifies the speed of the motion.
-void planner_line(double x, double y, double z, double feed_rate, uint8_t nominal_laser_intensity, uint16_t pixel_width);
+void planner_line(double x, double y, double z, double feed_rate, uint8_t nominal_laser_intensity,
+                  double pixels_per_mm, uint8_t raster_bytes);
 
 // Add a new piercing action, lasing at one spot.
 void planner_dwell(double seconds, uint8_t nominal_laser_intensity);
