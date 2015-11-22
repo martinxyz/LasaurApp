@@ -42,6 +42,7 @@ static volatile uint8_t * raster_data_end;
 static volatile uint8_t * raster_data_next;
 
 static uint8_t pulse_remaining;
+static uint8_t enforce_minimum_period;
 
 // Laser ISR
 ISR(TIMER0_OVF_vect) {
@@ -52,7 +53,21 @@ ISR(TIMER0_OVF_vect) {
     } else {
       pulse_remaining = pulse_duration;
     }
+
+    // protect against short pulses
+    if (pulse_remaining < LASER_MINIMUM_PULSE_DURATION) pulse_remaining = 0;
+    // protect against high frequencies
+    if (pulse_remaining) {
+      if (enforce_minimum_period) {
+        pulse_remaining = 0;
+        pulse_frequency = 0; // make the problem easier to recognize
+      } else {
+        enforce_minimum_period = LASER_MINIMUM_PULSE_PERIOD;
+      }
+    }
   }
+  if (enforce_minimum_period) enforce_minimum_period--;
+
   if (pulse_remaining > 0) {
     OCR0A = 255;
     pulse_remaining--;
