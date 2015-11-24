@@ -101,6 +101,7 @@
 #define INFO_VERSION 'v'
 #define INFO_BUFFER_UNDERRUN 'w'
 #define INFO_STACK_CLEARANCE 'u'
+#define INFO_DELAYED_MICROSTEPS 't'
 
 #define INFO_HELLO '~'
 

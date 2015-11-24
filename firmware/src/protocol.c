@@ -446,6 +446,7 @@ void protocol_idle() {
     }
 
     serial_write_param(INFO_STACK_CLEARANCE, stack_clearance());
+    serial_write_param(INFO_DELAYED_MICROSTEPS, stepper_get_delayed_microsteps());
 
     if (superstatus_requested) {
       superstatus_requested = false;

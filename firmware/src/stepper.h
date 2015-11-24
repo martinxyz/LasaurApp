@@ -59,5 +59,7 @@ void stepper_set_position(double x, double y, double z);
 // perform the homing cycle
 void stepper_homing_cycle();
 
+// for recognizing CPU overload at high speed
+uint16_t stepper_get_delayed_microsteps();
 
 #endif

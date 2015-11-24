@@ -79,6 +79,8 @@ static volatile bool processing_flag;         // indicates if blocks are being p
 static volatile bool stop_requested;          // when set to true stepper interrupt will go idle on next entry
 static volatile uint8_t stop_status;          // yields the reason for a stop request
 
+static volatile uint16_t delayed_microsteps;  // To recognize CPU overload
+
 // prototypes for static functions (non-accesible from other files)
 static bool acceleration_tick();
 static void adjust_speed( uint32_t steps_per_minute );
@@ -207,7 +209,10 @@ ISR(TIMER2_OVF_vect) {
 // config_step_timer. It pops blocks from the block_buffer and executes them by pulsing the stepper pins appropriately.
 // The bresenham line tracer algorithm controls all three stepper outputs simultaneously.
 ISR(TIMER1_COMPA_vect) {
-  if (busy) { return; } // The busy-flag is used to avoid reentering this interrupt
+  if (busy) {  // The busy-flag is used to avoid reentering this interrupt
+    delayed_microsteps++;
+    return;
+  }
   busy = true;
   if (stop_requested) {
     // go idle
@@ -594,6 +599,16 @@ void stepper_homing_cycle() {
   approach_limit_switch(true, true, false);
   leave_limit_switch(true, true, false);
   #endif
+}
+
+
+uint16_t stepper_get_delayed_microsteps()
+{
+  uint16_t res;
+  cli();
+  res = delayed_microsteps;
+  sei();
+  return res;
 }
 
 

@@ -91,6 +91,7 @@ markers_rx = {
     'v': "INFO_VERSION",
     'w': "INFO_BUFFER_UNDERRUN",
     'u': "INFO_STACK_CLEARANCE",
+    't': "INFO_DELAYED_MICROSTEPS",
 
     '~': "INFO_HELLO",
 
@@ -169,6 +170,7 @@ class SerialLoopClass(threading.Thread):
             'pos':[0.0, 0.0, 0.0],
             'underruns': 0,
             'stackclear': 999999,
+            'delayed_microsteps': 0,
 
             ### stop conditions
             # indicated when key present
@@ -296,6 +298,7 @@ class SerialLoopClass(threading.Thread):
                     self._s['ready'] = False
                     self._s['underruns'] = self._status['underruns']
                     self._s['stackclear'] = self._status['stackclear']
+                    self._s['delayed_microsteps'] = self._status['delayed_microsteps']
                     # send through status server
                     if self.server_enabled:
                         statusjson = json.dumps(self._status)
@@ -395,6 +398,11 @@ class SerialLoopClass(threading.Thread):
                     self._s['firmver'] = num
                 elif char == INFO_BUFFER_UNDERRUN:
                     self._s['underruns'] = num
+                elif char == INFO_STACK_CLEARANCE:
+                    self._s['stackclear'] = num
+                elif char == INFO_DELAYED_MICROSTEPS:
+                    print 'DELAYED_MICROSTEPS', num
+                    self._s['delayed_microsteps'] = num
                 # super status
                 elif char == INFO_OFFCUSTOM_X:
                     self._s['offset'][0] = num
@@ -408,8 +416,6 @@ class SerialLoopClass(threading.Thread):
                     self._s['pulse_frequency'] = num
                 elif char == INFO_PULSE_DURATION:
                     self._s['pulse_duration'] = num
-                elif char == INFO_STACK_CLEARANCE:
-                    self._s['stackclear'] = num
                 else:
                     print "ERROR: invalid param"
                 self.pdata_count = 0
