@@ -797,7 +797,7 @@ def _raster_move_raw(x, y, data):
         SerialLoop.send_raster_data(data)
         SerialLoop.send_param(PARAM_RASTER_BYTES, 0)
 
-def raster_move(x, y, data):
+def raster_move(x, y, data, verbose=False):
     """Execute a raster move from the current position
 
     Each data byte corresponds to a pulse. The number of pulses per mm
@@ -821,8 +821,12 @@ def raster_move(x, y, data):
     bytes_total = len(data)
     mm_per_second = current_parameters['feedrate'] / 60.0
     freq = bytes_total * mm_per_second / length
-    #print 'raster_line: byte duration %f' % (1.0/freq)
-    #print 'raster_line: ppmm %f' % (bytes_total / length)
+    if verbose:
+        baudrate = 57600
+        print 'raster_move from (%.3f, %.3f) to (%.3f, %.3f) at %.0f mm/min' % (x0, y0, x, y, current_parameters['feedrate'])
+        print '  length %.1f mm, %d bytes, data rate %.0f bytes/sec (%.f%% of serial capacity)' % (length, bytes_total, freq, 100*freq/(baudrate/10/2))
+        print '  byte duration %.0f us, pulse density %.3f ppmm (%.3f mm between pulses)' % (1.0/freq/1e-6, bytes_total/length, length/bytes_total)
+        print '  max pulse duration in data: %d ticks (%.0f us)' % (data.max(), data.max()*PULSE_SECONDS/1e-6)
     freq_old = current_parameters['pulse_frequency']
     pulse_frequency(freq)
     n = RASTER_BYTES_MAX
