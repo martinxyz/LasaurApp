@@ -118,6 +118,9 @@ RX_CHUNK_SIZE = 32
 FIRMBUF_SIZE = 256
 RASTER_BYTES_MAX = 60
 PULSE_SECONDS = 31.875e-6 # see laser.c
+MINIMUM_PULSE_TICKS = 3 # unit: PULSE_SECONDS
+MAXIMUM_PULSE_TICKS = 127 # unit: PULSE_SECONDS
+ACCELERATION = 1800000.0 # mm/min^2, divide by (60*60) to get mm/sec^2
 
 SerialLoop = None
 
@@ -401,7 +404,6 @@ class SerialLoopClass(threading.Thread):
                 elif char == INFO_STACK_CLEARANCE:
                     self._s['stackclear'] = num
                 elif char == INFO_DELAYED_MICROSTEPS:
-                    print 'DELAYED_MICROSTEPS', num
                     self._s['delayed_microsteps'] = num
                 # super status
                 elif char == INFO_OFFCUSTOM_X:
@@ -822,9 +824,8 @@ def raster_move(x, y, data, verbose=False):
     mm_per_second = current_parameters['feedrate'] / 60.0
     freq = bytes_total * mm_per_second / length
     if verbose:
-        baudrate = 57600
         print 'raster_move from (%.3f, %.3f) to (%.3f, %.3f) at %.0f mm/min' % (x0, y0, x, y, current_parameters['feedrate'])
-        print '  length %.1f mm, %d bytes, data rate %.0f bytes/sec (%.f%% of serial capacity)' % (length, bytes_total, freq, 100*freq/(baudrate/10/2))
+        print '  length %.1f mm, %d bytes, data rate %.0f bytes/sec (%.f%% of serial capacity)' % (length, bytes_total, freq, 100*freq/(conf['baudrate']/10/2))
         print '  byte duration %.0f us, pulse density %.3f ppmm (%.3f mm between pulses)' % (1.0/freq/1e-6, bytes_total/length, length/bytes_total)
         print '  max pulse duration in data: %d ticks (%.0f us)' % (data.max(), data.max()*PULSE_SECONDS/1e-6)
     freq_old = current_parameters['pulse_frequency']
