@@ -239,7 +239,12 @@ ISR(TIMER1_COMPA_vect) {
   #endif
   
   // pulse steppers
-  STEPPING_PORT = (STEPPING_PORT & ~DIRECTION_MASK) | (out_bits & DIRECTION_MASK);
+  uint8_t direction_bits_old = STEPPING_PORT & DIRECTION_MASK;
+  uint8_t direction_bits_new = out_bits & DIRECTION_MASK;
+  STEPPING_PORT = (STEPPING_PORT & ~DIRECTION_MASK) | direction_bits_new;
+  if (direction_bits_old != direction_bits_new) {
+    _delay_us(CONFIG_DIRECTION_SETUP_TIME_MICROSECONDS);
+  }
   STEPPING_PORT = (STEPPING_PORT & ~STEPPING_MASK) | out_bits;
   // prime for reset pulse in CONFIG_PULSE_MICROSECONDS
   TCNT2 = -(((CONFIG_PULSE_MICROSECONDS-2)*CYCLES_PER_MICROSECOND) >> 3); // Reload timer counter
