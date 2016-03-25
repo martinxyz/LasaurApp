@@ -200,9 +200,9 @@
                                             </button>
                                         <button class="btn btn-large dropdown-toggle" data-toggle="dropdown"><span class="caret"></span></button>
                                         <ul class="dropdown-menu">
-                                            <li><a id="svg_import_72_btn" href="#">Import 72dpi SVG</a></li>
-                                            <li><a id="svg_import_90_btn" href="#">Import 90dpi SVG</a></li>
-                                            <li><a id="svg_import_96_btn" href="#">Import 96dpi SVG</a></li>
+                                            <li><a id="svg_import_72_btn" href="#">force 72dpi SVG scale (Inkscape, Qt)</a></li>
+                                            <li><a id="svg_import_90_btn" href="#">force 90dpi SVG scale (Illustrator, Intaglio)</a></li>
+                                            <li><a id="svg_import_96_btn" href="#">force 96dpi SVG scale (CorelDraw)</a></li>
                                                 <li class="divider"></li>
                                             <li><a id="svg_import_nop_btn" href="#">Import without Optimizing</a></li>
                                         </ul>
@@ -348,9 +348,9 @@
                             gqueue.push(chunk);
                             lc=0;
                             chunk=""
-                        }   
+                        }
                     }
-                    if (chunk.length>0){ gqueue.push(chunk); }  
+                    if (chunk.length>0){ gqueue.push(chunk); }
                 }
 
                 function process_gcode_queue(){
@@ -358,9 +358,9 @@
                     if (progress_not_yet_done_flag==false && gqueue.length > 0){
                         gcode = gqueue.shift();
                         progress_not_yet_done_flag=true;
-                        send_gcode(gcode, "New Chunk from Queue Sent.", true);  
+                        send_gcode(gcode, "New Chunk from Queue Sent.", true);
                     }
-                    setTimeout("process_gcode_queue()",5000);   
+                    setTimeout("process_gcode_queue()",5000);
                 }
                 setTimeout("process_gcode_queue()",5000);
 
@@ -373,7 +373,7 @@
                                     var gcode = $('#gcode_edit').val();
                                     if (gcode){
                                         //send_gcode(gcode, "G-Code sent to backend.", true);
-                                        queue_gcode(gcode); 
+                                        queue_gcode(gcode);
                     }
                                 });
                             </script>
