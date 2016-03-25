@@ -153,6 +153,8 @@ class SVGReader:
         # 1. Get px2mm from argument
         if force_dpi is not None:
             self.px2mm = 25.4/force_dpi
+            vb_x = 0.0
+            vb_y = 0.0
             log.info("SVG import forced to %s dpi." % (force_dpi))
 
         # Get width, height, viewBox for further processing
