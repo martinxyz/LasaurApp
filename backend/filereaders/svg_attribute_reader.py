@@ -46,8 +46,7 @@ class SVGAttributeReader:
             'y2': self.dimensionAttrib,
             'r': self.dimensionAttrib,
             'cx': self.dimensionAttrib,
-            'cy': self.dimensionAttrib,
-            'href': self.stringAttrib
+            'cy': self.dimensionAttrib
         }
 
         self.re_findall_transforms = re.compile('(([a-z]+)\s*\(([^)]*)\))', re.IGNORECASE).findall
@@ -56,14 +55,13 @@ class SVGAttributeReader:
 
 
     def read_attrib(self, node, attr, value):
-        """Read any attribute.
+    	"""Read any attribute.
 
-        This function delegates according to the _hahttp://www.w3.org/TR/SVG11/shapes.html#CircleElementndlers map.
-        """
-        attrName = attr[attr.rfind('}')+1:]  # strip prefixes
-        if attrName in self._handlers and value.strip() != '':
-            # log.debug("reading attrib: " + attrName + ":" + value)
-            self._handlers[attrName](node, attrName, value)
+    	This function delegates according to the _handlers map.
+    	"""
+        if attr in self._handlers and value.strip() != '':
+        	# log.debug("reading attrib: " + attr + ":" + value)
+        	self._handlers[attr](node, attr, value)
 
 
 
@@ -276,6 +274,7 @@ class SVGAttributeReader:
         else:
             log.warn("invalid color, skipped: " + str(val))
             return 'inherit'
+
 
 
 

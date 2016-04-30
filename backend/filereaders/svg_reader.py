@@ -6,16 +6,16 @@ import math
 import logging
 
 from .webcolors import hex_to_rgb, rgb_to_hex
-from .utilities import matrixMult, matrixApply, matrixApplyScale
+from .utilities import matrixMult, matrixApply
 from .utilities import vertexScale, parseFloats, parseScalar
 from .svg_tag_reader import SVGTagReader
 
 
 logging.basicConfig()
 log = logging.getLogger("svg_reader")
-log.setLevel(logging.DEBUG)
+# log.setLevel(logging.DEBUG)
 # log.setLevel(logging.INFO)
-# log.setLevel(logging.WARN)
+log.setLevel(logging.WARN)
 
 
 try:
@@ -45,13 +45,13 @@ except ImportError:
 #   * non-pixel units (cm, mm, in, pt, pc)
 #   * 'style' attribute and presentation attributes
 #   * curves, arcs, cirles, ellipses tesellated according to tolerance
-#   * raster images
 #
 # Intentinally not Supported:
 #   * markers
 #   * masking
 #   * em, ex, % units
 #   * text (needs to be converted to paths)
+#   * raster images
 #   * style sheets
 #
 # ToDo:
@@ -98,9 +98,6 @@ class SVGReader:
         # # tags that should not be further traversed
         # self.ignore_tags = {'defs':None, 'pattern':None, 'clipPath':None}
 
-        self.rasters = []
-
-
 
     def parse(self, svgstring, force_dpi=None):
         """ Parse a SVG document.
@@ -144,8 +141,11 @@ class SVGReader:
         """
         self.px2mm = None
         self.boundarys = {}
-        self.lasertags = []
-        self.rasters = []
+
+        vb_x = None
+        vb_y = None
+        vb_w = None
+        vb_h = None
 
         # parse xml
         svgRootElement = ET.fromstring(svgstring)
@@ -164,10 +164,6 @@ class SVGReader:
         if not self.px2mm:
             width = None
             height = None
-            vb_x = None
-            vb_y = None
-            vb_w = None
-            vb_h = None
             unit = ''
 
             # get width, height, unit
@@ -284,16 +280,9 @@ class SVGReader:
         self.parse_children(svgRootElement, node)
 
         # build result dictionary
-        parse_results = {'dpi':round(25.4/self.px2mm)}
-
-        if self.boundarys:
-            parse_results['boundarys'] = self.boundarys
-
+        parse_results = {'boundarys':self.boundarys, 'dpi':round(25.4/self.px2mm)}
         if self.lasertags:
             parse_results['lasertags'] = self.lasertags
-
-        if self.rasters:
-            parse_results['rasters'] = self.rasters
 
         return parse_results
 
@@ -307,7 +296,6 @@ class SVGReader:
                 # and inherit from parent
                 node = {
                     'paths': [],
-                    'rasters': [],
                     'xform': [1,0,0,1,0,0],
                     'xformToWorld': parentNode['xformToWorld'],
                     'display': parentNode.get('display'),
@@ -343,18 +331,6 @@ class SVGReader:
                 if node.has_key('lasertags'):
                     self.lasertags.extend(node['lasertags'])
 
-                # 5. Raster Data [(x, y, size, data)]
-                for raster in node['rasters']:
-                    # pos to world coordinates and then to mm units
-                    matrixApply(node['xformToWorld'], raster['pos'])
-                    vertexScale(raster['pos'], self.px2mm)
-
-                    # size to world scale and then to mm units
-                    matrixApplyScale(node['xformToWorld'], raster['size'])
-                    vertexScale(raster['size'], self.px2mm)
-
-                    self.rasters.append(raster)
-
                 # recursive call
                 self.parse_children(child, node)
 
@@ -362,5 +338,8 @@ class SVGReader:
 
 
 
-# if __name__ == "__main__":
-#     # do something here when used directly
+if __name__ == "__main__":
+    with open(os.path.join(svgpath, "rocket_full.svg")) as f:
+        svgstring = f.read()
+    svgReader = SVGReader(0.08, [1220,610])
+    svgReader.parse(svg_string, forced_dpi)

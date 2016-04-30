@@ -4,15 +4,11 @@ __author__ = 'Stefan Hechenberger <stefan@nortd.com>'
 import re
 import math
 import logging
-import base64
-# import io
 
 from .utilities import matrixMult, parseFloats
 
 from .svg_attribute_reader import SVGAttributeReader
 from .svg_path_reader import SVGPathReader
-
-# from PIL import Image
 
 log = logging.getLogger("svg_reader")
 
@@ -42,7 +38,6 @@ class SVGTagReader:
         }
 
         self.re_findall_lasertags = re.compile('=pass([0-9]+):([0-9]*)(mm\/min)?:([0-9]*)(%)?(:#[a-fA-F0-9]{6})?(:#[a-fA-F0-9]{6})?(:#[a-fA-F0-9]{6})?(:#[a-fA-F0-9]{6})?(:#[a-fA-F0-9]{6})?(:#[a-fA-F0-9]{6})?=').findall
-        self.re_match_imagemime = re.compile('data:image/(png);base64,', re.IGNORECASE).match
 
 
     def read_tag(self, tag, node):
@@ -197,48 +192,9 @@ class SVGTagReader:
 
 
     def image(self, node):
+        # not supported
         # has transform and style attributes
-        data = node.get('href')
-        x = node.get('x') or 0
-        y = node.get('y') or 0
-        width = node.get('width') or 0
-        height = node.get('height') or 0
-
-        if width <= 0 or height <= 0:
-            return
-
-        if data.startswith('data:image/'):
-            image = data
-            # match = self.re_match_imagemime(data)
-            # if match:
-            #     image_type = match.groups()[0]
-            #     log.debug("Embedded %s image found ..." % (image_type))
-            #     # image = Image.open(io.BytesIO(base64.b64decode(data[22:].encode('utf-8'))))
-            #     # image = data[22:]
-            # else:
-            #     log.warn("Unsupported image format embedded.")
-            #     return
-        else:
-            # if data.startswith("file://"):
-            #     with open(data, "rb") as image_file:
-            #         image = base64.b64encode(image_file.read())
-            # else:
-            #     log.warn("Only locally linked (and embedded) images supported.")
-            #     return
-            image = ''
-            log.error("Only embedded images are supported.")
-
-        # image.show()
-        # converted_image = image.convert("L")
-        # converted_image.show()
-
-        raster = {}
-        raster['pos'] = [x, y]
-        raster['size'] = [width, height]
-        # raster['image'] = converted_image
-        raster['data'] = image
-        node['rasters'].append(raster)
-
+        log.warn("'image' tag is not supported, ignored")
 
 
     def defs(self, node):
