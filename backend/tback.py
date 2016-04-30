@@ -8,6 +8,8 @@ from tornado.ioloop import IOLoop
 import os.path
 import uuid
 
+from config import conf
+import hardware_init
 import driveboard
 
 
@@ -119,7 +121,7 @@ import asyncio
 
 from tornado.options import define, options
 
-define("port", default=8989, help="run on the given port", type=int)
+define("port", default=conf['websocket_port'], help="run on the given port", type=int)
 
 
 class Application(tornado.web.Application):
@@ -214,10 +216,12 @@ class WSHandler(tornado.websocket.WebSocketHandler):
         return True
 
 def main():
+    hardware_init.init()
     tornado.options.parse_command_line()
     io_loop = IOLoop.current()
     app = Application()
-    app.listen(options.port)
+    app.listen(port=conf['websocket_port'], address=conf['network_host'])
+    app.listen(port=conf['network_port'], address=conf['network_host'])
     io_loop.start()
 
 if __name__ == "__main__":

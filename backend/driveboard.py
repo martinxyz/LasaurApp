@@ -10,9 +10,10 @@ import serial
 import serial.tools.list_ports
 from tornado.ioloop import IOLoop
 
+from config import conf
+
 ## firmware constants, need to match device firmware
 ## (maybe they should be reported by the firmware's superstatus)
-BAUDRATE = 57600
 TX_CHUNK_SIZE = 16 # number of bytes written to the device in one go
 FIRMBUF_SIZE = 256
 RASTER_BYTES_MAX = 60
@@ -60,7 +61,7 @@ class Driveboard:
         if self.device is not None:
             return
         try:
-            self.device = serial.Serial(self.port, BAUDRATE)
+            self.device = serial.Serial(conf['serial_port'], conf['baudrate'])
             self.device.timeout = 0
             self.device.write_timeout = 0
             self.device.nonblocking()

@@ -42,8 +42,7 @@ elif sys.platform == "linux" or sys.platform == "linux2":  #Linux
 
 def run(s):
     print(s)
-    #subprocess.check_call(s, shell=True)
-    return subprocess.call(s, shell=True)
+    subprocess.check_call(s, shell=True)
 
 
 def build_firmware(firmware_name="LasaurGrbl"):
@@ -52,7 +51,6 @@ def build_firmware(firmware_name="LasaurGrbl"):
     And the hex file will be placed in ../firmware/
     Returns 0 on success.
     """
-    ret = 0
 
     thislocation = os.path.dirname(os.path.realpath(__file__))
     firmware_dir = os.path.join(thislocation, '..', 'firmware')
@@ -76,19 +74,16 @@ def build_firmware(firmware_name="LasaurGrbl"):
     COMPILE = AVRGCCAPP + " -Wall -O2 -flto -DF_CPU=" + CLOCK + " -mmcu=" + DEVICE + " -I. -ffunction-sections" + " --std=c99"
 
     for fileobj in OBJECTS:
-        ret += run('%(compile)s -c %(obj)s.c -o %(obj)s.o' % {'compile': COMPILE, 'obj':fileobj})
+        run('%(compile)s -c %(obj)s.c -o %(obj)s.o' % {'compile': COMPILE, 'obj':fileobj})
   
-    ret += run('%(compile)s -o main.elf %(alldoto)s  -lm' % {'compile': COMPILE, 'alldoto':".o ".join(OBJECTS)+'.o'})
+    run('%(compile)s -o main.elf %(alldoto)s  -lm' % {'compile': COMPILE, 'alldoto':".o ".join(OBJECTS)+'.o'})
 
-    ret += run('%(objcopy)s -j .text -j .data -O ihex main.elf %(product)s.hex' % {'objcopy': AVROBJCOPYAPP, 'obj':fileobj, 'product':BUILDNAME})
+    run('%(objcopy)s -j .text -j .data -O ihex main.elf %(product)s.hex' % {'objcopy': AVROBJCOPYAPP, 'obj':fileobj, 'product':BUILDNAME})
 
     # command = '%(size)s *.hex *.elf *.o' % {'size':AVRSIZEAPP}
-    ret += run('%(size)s --mcu=%(mcu)s --format=avr *.elf' % {'size':AVRSIZEAPP, 'mcu':DEVICE})
+    run('%(size)s --mcu=%(mcu)s --format=avr *.elf' % {'size':AVRSIZEAPP, 'mcu':DEVICE})
 
-    # ret += run('%(objdump)s -t -j .bss main.elf' % {'objdump':AVROBJDUMPAPP})
-
-    if ret != 0:
-        return "Error: failed to build"
+    # run('%(objdump)s -t -j .bss main.elf' % {'objdump':AVROBJDUMPAPP})
 
     try:
         # honor src/config.user.h if exists
@@ -104,23 +99,15 @@ def build_firmware(firmware_name="LasaurGrbl"):
             os.remove('main.elf')
 
         ## move firmware hex file
-        print "Moving firmware to standard location."
         firmware_src = firmware_name+'.hex'
         firmware_dst = os.path.join(firmware_dir, firmware_src)
+        print "Moving firmware to standard location", firmware_dst
         shutil.move(firmware_src, firmware_dst)
     finally:
         #restore previous cwd
         os.chdir(cwd_temp)
 
-    return 0
-
 
 if __name__ == '__main__':
-    import driveboard
-    from config import conf
-    buildname = conf['firmware']
-    if buildname.endswith('.hex'):
-        buildname = buildname[:-4]
-    return_code = driveboard.build(firmware_name=buildname)
-    if return_code != 0:
-        bottle.abort(400, "Build failed.")
+    build_firmware()
+
