@@ -2,13 +2,11 @@
 import os
 import sys
 import time
-import serial
-from serial.tools import list_ports
 from collections import deque
 
 
 class SerialManagerClass:
-    
+
     def __init__(self):
         self.device = None
 
@@ -17,12 +15,12 @@ class SerialManagerClass:
         self.tx_index = 0
         self.remoteXON = True
 
-        # TX_CHUNK_SIZE - this is the number of bytes to be 
+        # TX_CHUNK_SIZE - this is the number of bytes to be
         # written to the device in one go. It needs to match the device.
         self.TX_CHUNK_SIZE = 16
         self.RX_CHUNK_SIZE = 16
         self.nRequested = 0
-        
+
         # used for calculating percentage done
         self.job_active = False
 
@@ -31,9 +29,6 @@ class SerialManagerClass:
         self.reset_status()
 
         self.LASAURGRBL_FIRST_STRING = "LasaurGrbl"
-
-        self.fec_redundancy = 2  # use forward error correction
-        # self.fec_redundancy = 1  # use error detection
 
         self.ready_char = '\x12'
         self.request_ready_char = '\x14'
@@ -62,73 +57,17 @@ class SerialManagerClass:
 
 
 
-    def list_devices(self, baudrate):
-        ports = []
-        if os.name == 'posix':
-            iterator = sorted(list_ports.grep('tty'))
-            print "Found ports:"
-            for port, desc, hwid in iterator:
-                ports.append(port)
-                print "%-20s" % (port,)
-                print "    desc: %s" % (desc,)
-                print "    hwid: %s" % (hwid,)            
-        else:
-            # iterator = sorted(list_ports.grep(''))  # does not return USB-style
-            # scan for available ports. return a list of tuples (num, name)
-            available = []
-            for i in range(24):
-                try:
-                    s = serial.Serial(port=i, baudrate=baudrate)
-                    ports.append(s.portstr)                
-                    available.append( (i, s.portstr))
-                    s.close()
-                except serial.SerialException:
-                    pass
-            print "Found ports:"
-            for n,s in available: print "(%d) %s" % (n,s)
-        return ports
-
-
-            
-    def match_device(self, search_regex, baudrate):
-        if os.name == 'posix':
-            matched_ports = list_ports.grep(search_regex)
-            if matched_ports:
-                for match_tuple in matched_ports:
-                    if match_tuple:
-                        return match_tuple[0]
-            print "No serial port match for anything like: " + search_regex
-            return None
-        else:
-            # windows hack because pyserial does not enumerate USB-style com ports
-            print "Trying to find Controller ..."
-            for i in range(24):
-                try:
-                    s = serial.Serial(port=i, baudrate=baudrate, timeout=2.0)
-                    lasaur_hello = s.read(32)
-                    if lasaur_hello.find(self.LASAURGRBL_FIRST_STRING) > -1:
-                        return s.portstr
-                    s.close()
-                except serial.SerialException:
-                    pass      
-            return None      
-        
-
-    def connect(self, port, baudrate):
+    def connect(self):
         self.rx_buffer = ""
         self.tx_buffer = ""
-        self.tx_index = 0    
+        self.tx_index = 0
         self.remoteXON = True
         self.reset_status()
-                
-        # Create serial device with both read timeout set to 0.
-        # This results in the read() being non-blocking
-        # Write on the other hand uses a large timeout but should not be blocking
-        # much because we ask it only to write TX_CHUNK_SIZE at a time.
-        # BUG WARNING: the pyserial write function does not report how
-        # many bytes were actually written if this is different from requested.
-        # Work around: use a big enough timeout and a small enough chunk size.
-        self.device = serial.Serial(port, baudrate, timeout=0, writeTimeout=1)
+
+        print 'TODO: serial connect'
+        print 'self.device = serial.Serial(port, baudrate, timeout=0, writeTimeout=1)'
+
+        self.device = True
 
 
     def close(self):
@@ -144,7 +83,7 @@ class SerialManagerClass:
             return True
         else:
             return False
-                    
+
     def is_connected(self):
         return bool(self.device)
 
@@ -170,6 +109,7 @@ class SerialManagerClass:
         print "Adding to queue %s lines" % len(lines)
         job_list = []
         for line in lines:
+            print "Adding line %r" % repr(line)
             line = line.strip()
             if line == '' or line[0] == '%':
                 continue
@@ -181,26 +121,11 @@ class SerialManagerClass:
             else:
                 if line != '?':  # not ready unless just a ?-query
                     self.status['ready'] = False
-                    
-                if self.fec_redundancy > 0:  # using error correction
-                    # prepend marker and checksum
-                    checksum = 0
-                    for c in line:
-                        ascii_ord = ord(c)
-                        if ascii_ord > ord(' ') and c != '~' and c != '!':  #ignore 32 and lower, ~, !
-                            checksum += ascii_ord
-                            if checksum >= 128:
-                                checksum -= 128
-                    checksum = (checksum >> 1) + 128
-                    line_redundant = ""
-                    for n in range(self.fec_redundancy-1):
-                        line_redundant += '^' + chr(checksum) + line + '\n'
-                    line = line_redundant + '*' + chr(checksum) + line
-
                 job_list.append(line)
 
         gcode_processed = '\n'.join(job_list) + '\n'
         self.tx_buffer += gcode_processed
+        print 'queueing', repr(gcode_processed)
         self.job_active = True
 
 
@@ -208,12 +133,12 @@ class SerialManagerClass:
         self.tx_buffer = ""
         self.tx_index = 0
         self.job_active = False
-                  
+
 
     def is_queue_empty(self):
         return self.tx_index >= len(self.tx_buffer)
-        
-    
+
+
     def get_queue_percentage_done(self):
         buflen = len(self.tx_buffer)
         if buflen == 0:
@@ -233,9 +158,10 @@ class SerialManagerClass:
                 self.status['paused'] = False
                 return False
 
-    
+
     def send_queue_as_ready(self):
-        """Continuously call this to keep processing queue."""    
+        """Continuously call this to keep processing queue."""
+        return
         if self.device and not self.status['paused']:
             try:
                 ### receiving
@@ -260,7 +186,7 @@ class SerialManagerClass:
                 else:
                     if self.nRequested == 0:
                         time.sleep(0.001)  # no rx/tx, rest a bit
-                
+
                 ### sending
                 if self.tx_index < len(self.tx_buffer):
                     if self.nRequested > 0:
@@ -311,7 +237,7 @@ class SerialManagerClass:
                                 sys.stdout.flush()
                             if actuallySent == 1:
                                 self.last_request_ready = time.time()
-                         
+
                 else:
                     if self.job_active:
                         # print "\nG-code stream finished!"
@@ -326,10 +252,10 @@ class SerialManagerClass:
                 self.close()
             except ValueError:
                 # Serial port appears closed => reset
-                self.close()     
+                self.close()
         else:
-            # serial disconnected    
-            self.status['ready'] = False  
+            # serial disconnected
+            self.status['ready'] = False
 
 
 
@@ -340,7 +266,7 @@ class SerialManagerClass:
             sys.stdout.flush()
         elif '^' in line:
             sys.stdout.write("\nFEC Correction!\n")
-            sys.stdout.flush()                                              
+            sys.stdout.flush()
         else:
             if '!' in line:
                 # in stop mode
@@ -368,7 +294,7 @@ class SerialManagerClass:
             if 'T' in line:  # Stop: Transmission Error
                 self.status['transmission_error'] = True
             else:
-                self.status['transmission_error'] = False                                
+                self.status['transmission_error'] = False
 
             if 'P' in line:  # Stop: Power is off
                 self.status['power_off'] = True
@@ -406,11 +332,11 @@ class SerialManagerClass:
             #     self.status['y'] = False
 
             if 'V' in line:
-                self.status['firmware_version'] = line[line.find('V')+1:]                     
+                self.status['firmware_version'] = line[line.find('V')+1:]
 
 
 
 
-            
+
 # singelton
 SerialManager = SerialManagerClass()

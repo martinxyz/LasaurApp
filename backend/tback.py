@@ -3,10 +3,11 @@ import logging
 import tornado.options
 import tornado.web
 import tornado.websocket
-from tornado.escape import json_encode, json_decode
+#from tornado.escape import json_encode, json_decode
 from tornado.ioloop import IOLoop
 import os.path
-import uuid
+import subprocess
+import atexit
 
 from config import conf
 import hardware_init
@@ -126,17 +127,21 @@ define("port", default=conf['websocket_port'], help="run on the given port", typ
 
 class Application(tornado.web.Application):
     def __init__(self):
-        self.board = driveboard.Driveboard()
-        self.board.connect()
-        self.board.serial_write_raw(b'aslfdkajsflaksjflask')
+        board = driveboard.Driveboard()
+        board.connect()
+        #self.board.serial_write_raw(b'aslfdkajsflaksjflask')
         handlers = [
             (r"/", MainHandler),
-            (r"/ws", WSHandler, {'board': self.board}),
+            (r"/ws", WSHandler, dict(board=board)),
+            (r"/status", StatusHandler, dict(board=board)),
+            (r"/serial/([0-9]+)", OldApiSerialHandler, dict(board=board)),
+            (r"/(.*)", tornado.web.StaticFileHandler, {"path": "../frontend"}),
+
         ]
         settings = dict(
-            cookie_secret="__TODO:_GENERATE_YOUR_OWN_RANDOM_VALUE_HERE__",
+            # cookie_secret="__TODO:_GENERATE_YOUR_OWN_RANDOM_VALUE_HERE__",  #TODO: check if we need this (besides auth); requires html changes
             template_path=os.path.join(os.path.dirname(__file__), "templates"),
-            static_path=os.path.join(os.path.dirname(__file__), "static"),
+            #static_path=os.path.join(os.path.dirname(__file__), "static"),
             xsrf_cookies=True,
             debug=True,
         )
@@ -145,6 +150,53 @@ class Application(tornado.web.Application):
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
         self.render("index.html", messages=['foo', 'bar', 'baz'])
+
+class StatusHandler(tornado.web.RequestHandler):
+    def initialize(self, board):
+        self.board = board
+
+    def get(self):
+        status = {
+            'ready': self.board.is_connected(),  # turns True by querying status
+            'paused': False,  # this is also a control flag
+            'buffer_overflow': False,
+            'transmission_error': False,
+            'bad_number_format_error': False,
+            'expected_command_letter_error': False,
+            'unsupported_statement_error': False,
+            'power_off': False,
+            'limit_hit': False,
+            'serial_stop_request': False,
+            'door_open': False,
+            'chiller_off': False,
+            'x': False,
+            'y': False,
+            'firmware_version': None,
+            'serial_connected': self.board.is_connected(),
+            'lasaurapp_version': "14.11b",
+        }
+        #import time
+        #status['serial_connected'] = bool((time.time() % 30) < 5)
+        self.write(status)
+        #self.render("index.html", messages=['foo', 'bar', 'baz'])
+
+class OldApiSerialHandler(tornado.web.RequestHandler):
+    def initialize(self, board):
+        self.board = board
+
+    def get(self, connect):
+        if connect == '0':
+            if self.board.is_connected():
+                self.board.disconnect()
+                self.write('1')
+        elif connect == '1':
+            if not self.board.is_connected():
+                self.board.connect()
+                if self.board.is_connected():
+                    self.write('1')
+        else:
+            if self.board.is_connected():
+                self.write('1')
 
 class WSHandler(tornado.websocket.WebSocketHandler):
     clients = set()
@@ -193,7 +245,7 @@ class WSHandler(tornado.websocket.WebSocketHandler):
             else:
                 error = 'Port must be "Lasersaur"'
             if not error:
-                assert self.is_connected()
+                assert self.board.is_connected()
                 self.write_message({'Cmd': 'Open', 'Port': port})
                 # emulate firmware greeting
                 self.write_message({'P': 'Lasersaur', 'D': 'ok C: X:'})
@@ -208,6 +260,21 @@ class WSHandler(tornado.websocket.WebSocketHandler):
             if args[0] == 'Lasersaur':
                 gcode = ' '.join(args[1:])
                 logging.info('should send: %r', gcode)
+                # TODO: move this into own module (reusing 'parts' local var)
+                for line in gcode.split('\n'):
+                    parts = line.strip().split()
+                    if not parts:
+                        continue
+                    args = {}
+                    cmd = parts[0]
+                    for part in parts[1:]:
+                        letter = part[0]
+                        number = part[1:]
+                        args[letter] = number
+                    if cmd in ('G0', 'G1'):
+                        print('should move to', args.get('X'), args.get('Y'), args.get('Z'))
+                    else:
+                        print('unknown command:', cmd)
 
     def check_origin(self, origin):
         # TODO: this is bad; we don't really want javascript from
@@ -215,11 +282,21 @@ class WSHandler(tornado.websocket.WebSocketHandler):
         # In addition, we also should require authentication.
         return True
 
+def start_old_backend(public=False, debug=False):
+    cmd = ['python', './app.py']
+    if public: cmd.append('--public')
+    if debug: cmd.append('--debug')
+    p = subprocess.Popen(cmd)
+    def stop_old_backend():
+        p.terminate()
+    atexit.register(stop_old_backend)
+
 def main():
     hardware_init.init()
     tornado.options.parse_command_line()
     io_loop = IOLoop.current()
     app = Application()
+    start_old_backend()
     app.listen(port=conf['websocket_port'], address=conf['network_host'])
     app.listen(port=conf['network_port'], address=conf['network_host'])
     io_loop.start()

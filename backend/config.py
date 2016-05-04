@@ -20,7 +20,7 @@ conf = {
     'version': '16.00-beta1',
     'company_name': 'com.nortd.labs',
     'network_host': '',          # '' for all nics
-    'network_port': 4444,
+    'network_port': 4445,
     'websocket_port': 8989,
     'hardware': 'auto-detect', # 'auto-detect', 'standard', 'beaglebone' or 'raspberrypi'
     'serial_port': None, # something like '/dev/ttyACM0', '/dev/ttyUSB0' or 'COM3'

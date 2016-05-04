@@ -57,10 +57,13 @@ class Driveboard:
 
         self.pdata = []
 
+        self.firmbuf_used = 0
+
     def connect(self):
         if self.device is not None:
             return
         try:
+            print('opening serial port', repr(conf['serial_port']), 'baudrate', conf['baudrate'])
             self.device = serial.Serial(conf['serial_port'], conf['baudrate'])
             self.device.timeout = 0
             self.device.write_timeout = 0
@@ -72,7 +75,7 @@ class Driveboard:
             return str(e)
 
     def disconnect(self):
-        self.io_loop.remove_handler(fd)
+        self.io_loop.remove_handler(self.device)
         self.device.close()
         self.device = None
         self.write_queue.clear()
@@ -84,7 +87,7 @@ class Driveboard:
         if events & IOLoop.READ:
             try:
                 self.serial_read()
-            except serial.SerialUtil.SerialException:
+            except serial.SerialException:
                 self.disconnect()
                 print('Error while reading - disconnecting. Exception follows:')
                 raise
@@ -99,8 +102,10 @@ class Driveboard:
         queue += data
         if queue:
             n = self.device.write(queue)
+            print('tx', repr(queue[:n]))
             del queue[:n]
             if queue:
+                print(len(queue), 'bytes still waiting in queue after tx')
                 self.io_loop.update_handler(fd, IOLoop.READ | IOLoop.WRITE)
         else:
             self.io_loop.update_handler(fd, IOLoop.READ)
@@ -108,7 +113,7 @@ class Driveboard:
     def serial_read(self):
         for byte in self.device.read():
             name = markers_rx.get(byte, '')
-            #print('rx', repr(chr(byte)), name)
+            print('rx', repr(chr(byte)), name)
             if byte < 32:  # flow
                 if byte == CMD_CHUNK_PROCESSED:
                     self.firmbuf_used -= TX_CHUNK_SIZE
@@ -139,7 +144,7 @@ class Driveboard:
             else:
                 print('ERROR: invalid byte received:', repr(chr(byte)), name)
 
-    def _serial_write(self):
+    def serial_write(self):
         ### sending super commands (handled in serial rx interrupt)
         if self.request_status == 1:
             self._send_char(CMD_STATUS)
