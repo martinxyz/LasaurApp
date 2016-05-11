@@ -33,7 +33,7 @@ def resources_dir():
         return sys._MEIPASS
     else:
         # root is one up from this file
-        return os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../'))
+        return os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../'))
 
 
 def storage_dir():
@@ -129,19 +129,19 @@ def run_with_callback(host, port):
 
 @route('/css/:path#.+#')
 def static_css_handler(path):
-    return static_file(path, root=os.path.join(resources_dir(), 'frontend/css'))
+    return static_file(path, root=os.path.join(resources_dir(), 'frontend/original/css'))
 
 @route('/js/:path#.+#')
 def static_js_handler(path):
-    return static_file(path, root=os.path.join(resources_dir(), 'frontend/js'))
+    return static_file(path, root=os.path.join(resources_dir(), 'frontend/original/js'))
 
 @route('/img/:path#.+#')
 def static_img_handler(path):
-    return static_file(path, root=os.path.join(resources_dir(), 'frontend/img'))
+    return static_file(path, root=os.path.join(resources_dir(), 'frontend/original/img'))
 
 @route('/favicon.ico')
 def favicon_handler():
-    return static_file('favicon.ico', root=os.path.join(resources_dir(), 'frontend/img'))
+    return static_file('favicon.ico', root=os.path.join(resources_dir(), 'frontend/original/img'))
 
 
 ### LIBRARY
@@ -279,7 +279,7 @@ def queue_unstar_handler(name):
 @route('/index.html')
 @route('/app.html')
 def default_handler():
-    return static_file('app.html', root=os.path.join(resources_dir(), 'frontend') )
+    return static_file('app.html', root=os.path.join(resources_dir(), 'frontend/original') )
 
 
 @route('/stash_download', method='POST')

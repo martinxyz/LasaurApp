@@ -283,7 +283,7 @@ class WSHandler(tornado.websocket.WebSocketHandler):
         return True
 
 def start_old_backend(public=False, debug=False):
-    cmd = ['python', './app.py']
+    cmd = ['python', 'original/app.py']
     if public: cmd.append('--public')
     if debug: cmd.append('--debug')
     p = subprocess.Popen(cmd)
