@@ -3,7 +3,11 @@ import sys, os, time
 import glob, json, argparse, copy
 import tempfile
 import socket, webbrowser
-from wsgiref.simple_server import WSGIRequestHandler, make_server
+
+import tornado
+import tornado.wsgi
+import tornado.httpserver
+
 from bottle import *
 from serial_manager import SerialManager
 from filereaders import read_svg, read_dxf, read_ngc
@@ -56,33 +60,22 @@ def storage_dir():
     return directory
 
 
-class HackedWSGIRequestHandler(WSGIRequestHandler):
-    """ This is a heck to solve super slow request handling
-    on the BeagleBone and RaspberryPi. The problem is WSGIRequestHandler
-    which does a reverse lookup on every request calling gethostbyaddr.
-    For some reason this is super slow when connected to the LAN.
-    (adding the IP and name of the requester in the /etc/hosts file
-    solves the problem but obviously is not practical)
-    """
-    def address_string(self):
-        """Instead of calling getfqdn -> gethostbyaddr we ignore."""
-        # return "(a requester)"
-        return str(self.client_address[0])
-
-    def log_request(*args, **kw):
-        # if debug:
-            # return wsgiref.simple_server.WSGIRequestHandler.log_request(*args, **kw)
-        pass
-
-
 def run_with_callback(host, port):
-    """ Start a wsgiref server instance with control over the main loop.
+    """ Start a server instance with control over the main loop.
         This is a function that I derived from the bottle.py run()
     """
+    #SerialManager.connect()
     handler = default_app()
-    server = make_server(host, port, handler, handler_class=HackedWSGIRequestHandler)
-    server.timeout = 0.01
-    server.quiet = True
+    if args.debug:
+        debug(True)
+        handler.catchall = False  # fatal exceptions with traceback
+    #app().catchall = False  # exceptions, please
+
+    container = tornado.wsgi.WSGIContainer(handler)
+    http_server = tornado.httpserver.HTTPServer(container)
+
+
+
     print("Persistent storage root is: " + storage_dir())
     print("-----------------------------------------------------------------------------")
     print("Bottle server starting up ...")
@@ -104,14 +97,10 @@ def run_with_callback(host, port):
     #except webbrowser.Error:
     #    print "Cannot open Webbrowser, please do so manually."
     sys.stdout.flush()  # make sure everything gets flushed
-    server.timeout = 0
-    while 1:
-        try:
-            SerialManager.send_queue_as_ready()
-            server.handle_request()
-            time.sleep(0.050)
-        except KeyboardInterrupt:
-            break
+
+    http_server.listen(port=port, address=host)
+    tornado.ioloop.IOLoop.current().start()
+
     print("\nBottle server shutting down...")
     SerialManager.close()
 
@@ -307,15 +296,12 @@ def serial_handler(connect):
     if connect == '1':
         # print 'js is asking to connect serial'
         if not SerialManager.is_connected():
-            #try:
             SerialManager.connect()
-            ret = 'Serial backend connected.<br>'
+            ret = 'Connecting to serial backend...<br>'
             print(ret)
             return ret
-            #except serial.SerialException:
-            #    SERIAL_PORT = None
-            #    print "Failed to connect to serial."
-            #    return ""
+            #print "Failed to connect to serial."
+            #return ""
     elif connect == '0':
         # print 'js is asking to close serial'
         if SerialManager.is_connected():

@@ -1,2 +1,2 @@
 #!/bin/bash
-python backend-pulseraster/app.py
+python backend/tback.py

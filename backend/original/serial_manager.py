@@ -1,14 +1,18 @@
+"""
+Connect (and send gcode) to the websocket of the new backend.
+"""
 
-import os
 import sys
 import time
-from collections import deque
 
+import tornado.websocket
+from tornado import gen
+from tornado.escape import json_decode
 
 class SerialManagerClass:
 
     def __init__(self):
-        self.device = None
+        self.ws = None
 
         self.rx_buffer = ""
         self.tx_buffer = ""
@@ -38,7 +42,7 @@ class SerialManagerClass:
 
     def reset_status(self):
         self.status = {
-            'ready': True,  # turns True by querying status
+            'ready': False,  # turns True by querying status (TODO)
             'paused': False,  # this is also a control flag
             'buffer_overflow': False,
             'transmission_error': False,
@@ -58,34 +62,59 @@ class SerialManagerClass:
 
 
     def connect(self):
+        if self.ws is not None:
+            return False
+        io_loop = tornado.ioloop.IOLoop.current()
+        io_loop.spawn_callback(self.ws_connect)
+
+    @gen.coroutine
+    def ws_connect(self):
         self.rx_buffer = ""
         self.tx_buffer = ""
         self.tx_index = 0
         self.remoteXON = True
         self.reset_status()
 
-        print('TODO: serial connect')
-        print('self.device = serial.Serial(port, baudrate, timeout=0, writeTimeout=1)')
+        ws = yield tornado.websocket.websocket_connect('ws://localhost:8989/ws')
+        #ws.write_message('list')
+        #port_list = json_decode(yield ws.read_message())
+        port = 'Lasersaur'
+        ws.write_message('open ' + port)
+        res = yield ws.read_message()
+        res = json_decode(res)
+        if res['Cmd'] == 'Open' and res['Port'] == port:
+            print('Websocket port is open.')
+        else:
+            print("'open' command failed, server response: %r" % res)
+            raise RuntimeError
 
-        self.device = True
+        try:
+            self.ws = ws
+            while True:
+                res = yield ws.read_message()
+                if res is None:
+                    print('Websocket closed.')
+                    break
+                res = json_decode(res)
+                self.ws_message(res)
+        finally:
+            self.ws = None
+            self.reset_status()
+            ws.close()
 
+    def ws_message(self, msg):
+        print('got MSG', repr(msg))
 
     def close(self):
-        if self.device:
-            try:
-                self.device.flushOutput()
-                self.device.flushInput()
-                self.device.close()
-                self.device = None
-            except:
-                self.device = None
+        if self.ws:
+            self.ws.close()
             self.status['ready'] = False
             return True
         else:
             return False
 
     def is_connected(self):
-        return bool(self.device)
+        return bool(self.ws)
 
     def get_hardware_status(self):
         if self.is_queue_empty():

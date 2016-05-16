@@ -133,8 +133,8 @@ class Application(tornado.web.Application):
         handlers = [
             (r"/", MainHandler),
             (r"/ws", WSHandler, dict(board=board)),
-            (r"/status", StatusHandler, dict(board=board)),
-            (r"/serial/([0-9]+)", OldApiSerialHandler, dict(board=board)),
+            #(r"/status", StatusHandler, dict(board=board)),
+            #(r"/serial/([0-9]+)", OldApiSerialHandler, dict(board=board)),
             (r"/(.*)", tornado.web.StaticFileHandler, {"path": "../frontend"}),
 
         ]
@@ -151,52 +151,52 @@ class MainHandler(tornado.web.RequestHandler):
     def get(self):
         self.render("index.html", messages=['foo', 'bar', 'baz'])
 
-class StatusHandler(tornado.web.RequestHandler):
-    def initialize(self, board):
-        self.board = board
+# class StatusHandler(tornado.web.RequestHandler):
+#     def initialize(self, board):
+#         self.board = board
+#
+#     def get(self):
+#         status = {
+#             'ready': self.board.is_connected(),  # turns True by querying status
+#             'paused': False,  # this is also a control flag
+#             'buffer_overflow': False,
+#             'transmission_error': False,
+#             'bad_number_format_error': False,
+#             'expected_command_letter_error': False,
+#             'unsupported_statement_error': False,
+#             'power_off': False,
+#             'limit_hit': False,
+#             'serial_stop_request': False,
+#             'door_open': False,
+#             'chiller_off': False,
+#             'x': False,
+#             'y': False,
+#             'firmware_version': None,
+#             'serial_connected': self.board.is_connected(),
+#             'lasaurapp_version': "14.11b",
+#         }
+#         #import time
+#         #status['serial_connected'] = bool((time.time() % 30) < 5)
+#         self.write(status)
+#         #self.render("index.html", messages=['foo', 'bar', 'baz'])
 
-    def get(self):
-        status = {
-            'ready': self.board.is_connected(),  # turns True by querying status
-            'paused': False,  # this is also a control flag
-            'buffer_overflow': False,
-            'transmission_error': False,
-            'bad_number_format_error': False,
-            'expected_command_letter_error': False,
-            'unsupported_statement_error': False,
-            'power_off': False,
-            'limit_hit': False,
-            'serial_stop_request': False,
-            'door_open': False,
-            'chiller_off': False,
-            'x': False,
-            'y': False,
-            'firmware_version': None,
-            'serial_connected': self.board.is_connected(),
-            'lasaurapp_version': "14.11b",
-        }
-        #import time
-        #status['serial_connected'] = bool((time.time() % 30) < 5)
-        self.write(status)
-        #self.render("index.html", messages=['foo', 'bar', 'baz'])
-
-class OldApiSerialHandler(tornado.web.RequestHandler):
-    def initialize(self, board):
-        self.board = board
-
-    def get(self, connect):
-        if connect == '0':
-            if self.board.is_connected():
-                self.board.disconnect()
-                self.write('1')
-        elif connect == '1':
-            if not self.board.is_connected():
-                self.board.connect()
-                if self.board.is_connected():
-                    self.write('1')
-        else:
-            if self.board.is_connected():
-                self.write('1')
+# class OldApiSerialHandler(tornado.web.RequestHandler):
+#     def initialize(self, board):
+#         self.board = board
+#
+#     def get(self, connect):
+#         if connect == '0':
+#             if self.board.is_connected():
+#                 self.board.disconnect()
+#                 self.write('1')
+#         elif connect == '1':
+#             if not self.board.is_connected():
+#                 self.board.connect()
+#                 if self.board.is_connected():
+#                     self.write('1')
+#         else:
+#             if self.board.is_connected():
+#                 self.write('1')
 
 class WSHandler(tornado.websocket.WebSocketHandler):
     clients = set()
@@ -282,12 +282,14 @@ class WSHandler(tornado.websocket.WebSocketHandler):
         # In addition, we also should require authentication.
         return True
 
-def start_old_backend(public=False, debug=False):
+def start_old_backend(public=False, debug=True):
     cmd = ['python3', 'original/app.py']
     if public: cmd.append('--public')
     if debug: cmd.append('--debug')
+    print('starting original backend:', ' '.join(cmd))
     p = subprocess.Popen(cmd)
     def stop_old_backend():
+        print('killing original backend')
         p.terminate()
     atexit.register(stop_old_backend)
 

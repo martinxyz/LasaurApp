@@ -1,6 +1,61 @@
+LasaurApp - pulseraster branch
+==============================
 
-LasaurApp
-=========
+LasaurApp is the official [Lasersaur](http://lasersaur.com) app.
+
+The *pulseraster* branch adds a better protocol for binary raster
+images (firmware) and a new web server (backend) that aims to be
+compatible with
+[LaserWeb2](https://github.com/openhardwarecoza/LaserWeb2#laserweb2)
+by emulating a
+[ChiliPeppr serial port json server](https://github.com/chilipeppr/serial-port-json-server)
+(SJPS), translating gcode to the firmware binary protocol.
+
+There is also a port of the original (production-ready) LasaurApp in
+progress, which can be run alongside LaserWeb2 (or any other frontend).
+
+Status: unfinished work-in-progress, for developers only.
+
+Installation (pulseraster)
+--------------------------
+
+Python 3.4 or later and tornado (a Python library) are required.  They
+can be installed with:
+
+```
+apt-get update
+apt-get install python3 python3-tornado
+```
+
+Upgrading from "Lasersaur BBB Image v15.01"
+-------------------------------------------
+
+This is the official Lasersaur image which is based on Ubuntu 14.04.
+Python3 is available but outdated. You'll get errors saying that
+*asyncio* is missing.
+
+It is possible to upgrade Python3 and Tornado from the Ubuntu 15.10
+("Wily") repository. This can be done by replacing *trusty* with
+*wily* in `/etc/apt/sources.list` before running the commands above.
+
+
+Troubleshooting
+---------------
+
+If you get Python errors about *json* and *Bad magic number*, it's
+probably because you have an old "json" directory still lying around.
+The json library was removed from the LasaurApp repository because the
+Python built-in version should be used.  Delete (or rename) the json
+directory and all `.pyc` files.
+
+Running without BBB
+-------------------
+TODO maybe?
+
+
+
+LasaurApp - original notes
+==========================
 
 LasaurApp is the official [Lasersaur](http://lasersaur.com) app. It has all the functionality to operate this kind of laser cutter:
 
@@ -59,3 +114,4 @@ For other USB devices thee following may be useful too:
 - sudo kextunload -b com.apple.driver.AppleUSBCDCWCM
 - sudo kextunload -b com.apple.driver.AppleUSBCDCACMData
 - sudo kextunload -b com.apple.driver.AppleUSBCDCACMControl
+

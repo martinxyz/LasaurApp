@@ -126,4 +126,4 @@ if conf['serial_port'] is None:
         conf['serial_port'] = '/dev/ttyAMA0'
     else:
         print('WARNING: serial_port is not configured. See backend/config.py for instructions.')
-        conf['serial_port'] = "port_not_configured"
+        conf['serial_port'] = "serial_port_not_configured"
