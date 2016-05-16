@@ -83,21 +83,21 @@ def run_with_callback(host, port):
     server = make_server(host, port, handler, handler_class=HackedWSGIRequestHandler)
     server.timeout = 0.01
     server.quiet = True
-    print "Persistent storage root is: " + storage_dir()
-    print "-----------------------------------------------------------------------------"
-    print "Bottle server starting up ..."
-    print "Serial is set to %d bps" % BITSPERSECOND
-    print "Point your browser to: "
-    print "http://%s:%d/      (local)" % ('127.0.0.1', port)
+    print("Persistent storage root is: " + storage_dir())
+    print("-----------------------------------------------------------------------------")
+    print("Bottle server starting up ...")
+    print("Serial is set to %d bps" % BITSPERSECOND)
+    print("Point your browser to: ")
+    print("http://%s:%d/      (local)" % ('127.0.0.1', port))
     # if host == '':
     #     try:
     #         print "http://%s:%d/   (public)" % (socket.gethostbyname(socket.gethostname()), port)
     #     except socket.gaierror:
     #         # print "http://beaglebone.local:4444/      (public)"
     #         pass
-    print "Use Ctrl-C to quit."
-    print "-----------------------------------------------------------------------------"
-    print
+    print("Use Ctrl-C to quit.")
+    print("-----------------------------------------------------------------------------")
+    print()
     ## open web-browser
     #try:
     #    webbrowser.open_new_tab('http://127.0.0.1:'+str(port))
@@ -112,7 +112,7 @@ def run_with_callback(host, port):
             time.sleep(0.050)
         except KeyboardInterrupt:
             break
-    print "\nBottle server shutting down..."
+    print("\nBottle server shutting down...")
     SerialManager.close()
 
 
@@ -188,7 +188,7 @@ def library_list_handler():
     cwd_temp = os.getcwd()
     try:
         os.chdir(storage_dir())
-        files = filter(os.path.isfile, glob.glob("*"))
+        files = list(filter(os.path.isfile, glob.glob("*")))
         files.sort(key=lambda x: os.path.getmtime(x))
     finally:
         os.chdir(cwd_temp)
@@ -206,12 +206,12 @@ def queue_save_handler():
         try:
             fp = open(filename, 'w')
             fp.write(job_data)
-            print "file saved: " + filename
+            print("file saved: " + filename)
             ret = '1'
         finally:
             fp.close()
     else:
-        print "error: save failed, invalid POST request"
+        print("error: save failed, invalid POST request")
     return ret
 
 @route('/queue/rm/:name')
@@ -223,7 +223,7 @@ def queue_rm_handler(name):
         if os.path.exists(filename):
             try:
                 os.remove(filename);
-                print "file deleted: " + filename
+                print("file deleted: " + filename)
                 ret = '1'
             finally:
                 pass
@@ -237,7 +237,7 @@ def queue_clear_handler():
     cwd_temp = os.getcwd()
     try:
         os.chdir(storage_dir())
-        files = filter(os.path.isfile, glob.glob("*"))
+        files = list(filter(os.path.isfile, glob.glob("*")))
         files.sort(key=lambda x: os.path.getmtime(x))
     finally:
         os.chdir(cwd_temp)
@@ -246,7 +246,7 @@ def queue_clear_handler():
             filename = os.path.join(storage_dir(), filename)
             try:
                 os.remove(filename);
-                print "file deleted: " + filename
+                print("file deleted: " + filename)
                 ret = '1'
             finally:
                 pass
@@ -291,26 +291,26 @@ def stash_download():
     with fp:
         fp.write(filedata)
         fp.close()
-    print filedata
-    print "file stashed: " + os.path.basename(filename)
+    print(filedata)
+    print("file stashed: " + os.path.basename(filename))
     return os.path.basename(filename)
 
 @route('/download/:filename/:dlname')
 def download(filename, dlname):
-    print "requesting: " + filename
+    print("requesting: " + filename)
     return static_file(filename, root=tempfile.gettempdir(), download=dlname)
 
 
 @route('/serial/:connect')
 def serial_handler(connect):
-    print 'connect', connect
+    print('connect', connect)
     if connect == '1':
         # print 'js is asking to connect serial'
         if not SerialManager.is_connected():
             #try:
             SerialManager.connect()
             ret = 'Serial backend connected.<br>'
-            print ret
+            print(ret)
             return ret
             #except serial.SerialException:
             #    SERIAL_PORT = None
@@ -326,7 +326,7 @@ def serial_handler(connect):
         if SerialManager.is_connected(): return "1"
         else: return ""
     else:
-        print 'ambigious connect request from js: ' + connect
+        print('ambigious connect request from js: ' + connect)
         return ""
 
 
@@ -344,12 +344,12 @@ def set_pause(flag):
     # returns pause status
     if flag == '1':
         if SerialManager.set_pause(True):
-            print "pausing ..."
+            print("pausing ...")
             return '1'
         else:
             return '0'
     elif flag == '0':
-        print "resuming ..."
+        print("resuming ...")
         if SerialManager.set_pause(False):
             return '1'
         else:
@@ -408,7 +408,7 @@ def file_reader():
         pass
 
     if filename and filedata:
-        print "You uploaded %s (%d bytes)." % (filename, len(filedata))
+        print("You uploaded %s (%d bytes)." % (filename, len(filedata)))
         if filename[-4:] in ['.dxf', '.DXF']:
             res = read_dxf(filedata, TOLERANCE, optimize)
         elif filename[-4:] in ['.svg', '.SVG']:
@@ -416,7 +416,7 @@ def file_reader():
         elif filename[-4:] in ['.ngc', '.NGC']:
             res = read_ngc(filedata, TOLERANCE, optimize)
         else:
-            print "error: unsupported file format"
+            print("error: unsupported file format")
 
         # print boundarys
         jsondata = json.dumps(res)
@@ -462,7 +462,7 @@ args = argparser.parse_args()
 
 
 
-print "LasaurApp " + VERSION
+print("LasaurApp " + VERSION)
 
 if __name__ == '__main__':
     if args.host_on_all_interfaces:

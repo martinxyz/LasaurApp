@@ -64,8 +64,8 @@ class SerialManagerClass:
         self.remoteXON = True
         self.reset_status()
 
-        print 'TODO: serial connect'
-        print 'self.device = serial.Serial(port, baudrate, timeout=0, writeTimeout=1)'
+        print('TODO: serial connect')
+        print('self.device = serial.Serial(port, baudrate, timeout=0, writeTimeout=1)')
 
         self.device = True
 
@@ -106,10 +106,10 @@ class SerialManagerClass:
 
     def queue_gcode(self, gcode):
         lines = gcode.split('\n')
-        print "Adding to queue %s lines" % len(lines)
+        print("Adding to queue %s lines" % len(lines))
         job_list = []
         for line in lines:
-            print "Adding line %r" % repr(line)
+            print("Adding line %r" % repr(line))
             line = line.strip()
             if line == '' or line[0] == '%':
                 continue
@@ -125,7 +125,7 @@ class SerialManagerClass:
 
         gcode_processed = '\n'.join(job_list) + '\n'
         self.tx_buffer += gcode_processed
-        print 'queueing', repr(gcode_processed)
+        print('queueing', repr(gcode_processed))
         self.job_active = True
 
 

@@ -43,7 +43,7 @@ if args.profile:
     os.remove('profile.tmp')
 elif args.timeit:
     t = timeit.Timer("main()", "from __main__ import main")
-    print t.timeit(1)
+    print(t.timeit(1))
     # print t.timeit(3)
 else:
     main()
