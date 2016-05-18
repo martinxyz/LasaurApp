@@ -136,31 +136,32 @@ class SerialManagerClass:
 
 
     def queue_gcode(self, gcode):
+        if not self.ws:
+            return
         lines = gcode.split('\n')
-        print("Adding to queue %s lines" % len(lines))
+        if lines[0][0] != '?':
+            print("Sending %d lines of gcode to websocket" % len(lines))
         job_list = []
         for line in lines:
-            print("Adding line %r" % repr(line))
             line = line.strip()
             if line == '' or line[0] == '%':
                 continue
 
             if line[0] == '!':
-                self.cancel_queue()
-                self.reset_status()
-                job_list.append('!')
+                print('TODO: implement canceling')
+                #self.cancel_queue()
+                #self.reset_status()
+                #job_list.append('!')
             else:
                 if line != '?':  # not ready unless just a ?-query
                     self.status['ready'] = False
                 job_list.append(line)
+                self.ws.write_message('send Lasersaur ' + line)
 
-        gcode_processed = '\n'.join(job_list) + '\n'
-        self.tx_buffer += gcode_processed
-        print('queueing', repr(gcode_processed))
         self.job_active = True
 
-
     def cancel_queue(self):
+        print('TODO: cancel queue')
         self.tx_buffer = ""
         self.tx_index = 0
         self.job_active = False
@@ -190,105 +191,97 @@ class SerialManagerClass:
                 return False
 
 
-    def send_queue_as_ready(self):
-        """Continuously call this to keep processing queue."""
-        return
-        if self.device and not self.status['paused']:
-            try:
-                ### receiving
-                chars = self.device.read(self.RX_CHUNK_SIZE)
-                if len(chars) > 0:
-                    ## check for data request
-                    if self.ready_char in chars:
-                        # print "=========================== READY"
-                        self.nRequested = self.TX_CHUNK_SIZE
-                        #remove control chars
-                        chars = chars.replace(self.ready_char, "")
-                    ## assemble lines
-                    self.rx_buffer += chars
-                    while(1):  # process all lines in buffer
-                        posNewline = self.rx_buffer.find('\n')
-                        if posNewline == -1:
-                            break  # no more complete lines
-                        else:  # we got a line
-                            line = self.rx_buffer[:posNewline]
-                            self.rx_buffer = self.rx_buffer[posNewline+1:]
-                        self.process_status_line(line)
-                else:
-                    if self.nRequested == 0:
-                        time.sleep(0.001)  # no rx/tx, rest a bit
+    # def send_queue_as_ready(self):
+    #     """Continuously call this to keep processing queue."""
+    #     return
+    #     if self.device and not self.status['paused']:
+    #         try:
+    #             ### receiving
+    #             chars = self.device.read(self.RX_CHUNK_SIZE)
+    #             if len(chars) > 0:
+    #                 ## check for data request
+    #                 if self.ready_char in chars:
+    #                     # print "=========================== READY"
+    #                     self.nRequested = self.TX_CHUNK_SIZE
+    #                     #remove control chars
+    #                     chars = chars.replace(self.ready_char, "")
+    #                 ## assemble lines
+    #                 self.rx_buffer += chars
+    #                 while(1):  # process all lines in buffer
+    #                     posNewline = self.rx_buffer.find('\n')
+    #                     if posNewline == -1:
+    #                         break  # no more complete lines
+    #                     else:  # we got a line
+    #                         line = self.rx_buffer[:posNewline]
+    #                         self.rx_buffer = self.rx_buffer[posNewline+1:]
+    #                     self.process_status_line(line)
+    #             else:
+    #                 if self.nRequested == 0:
+    #                     time.sleep(0.001)  # no rx/tx, rest a bit
 
-                ### sending
-                if self.tx_index < len(self.tx_buffer):
-                    if self.nRequested > 0:
-                        try:
-                            t_prewrite = time.time()
-                            actuallySent = self.device.write(
-                                self.tx_buffer[self.tx_index:self.tx_index+self.nRequested])
-                            if time.time()-t_prewrite > 0.02:
-                                sys.stdout.write("WARN: write delay 1\n")
-                                sys.stdout.flush()
-                        except serial.SerialTimeoutException:
-                            # skip, report
-                            actuallySent = 0  # assume nothing has been sent
-                            sys.stdout.write("\nsend_queue_as_ready: writeTimeoutError\n")
-                            sys.stdout.flush()
-                        self.tx_index += actuallySent
-                        self.nRequested -= actuallySent
-                        if self.nRequested <= 0:
-                            self.last_request_ready = 0  # make sure to request ready
-                    elif self.tx_buffer[self.tx_index] in ['!', '~']:  # send control chars no matter what
-                        try:
-                            t_prewrite = time.time()
-                            actuallySent = self.device.write(self.tx_buffer[self.tx_index])
-                            if time.time()-t_prewrite > 0.02:
-                                sys.stdout.write("WARN: write delay 2\n")
-                                sys.stdout.flush()
-                        except serial.SerialTimeoutException:
-                            actuallySent = 0  # assume nothing has been sent
-                            sys.stdout.write("\nsend_queue_as_ready: writeTimeoutError\n")
-                            sys.stdout.flush()
-                        self.tx_index += actuallySent
-                    else:
-                        if (time.time()-self.last_request_ready) > 2.0:
-                            # ask to send a ready byte
-                            # only ask for this when sending is on hold
-                            # only ask once (and after a big time out)
-                            # print "=========================== REQUEST READY"
-                            try:
-                                t_prewrite = time.time()
-                                actuallySent = self.device.write(self.request_ready_char)
-                                if time.time()-t_prewrite > 0.02:
-                                    sys.stdout.write("WARN: write delay 3\n")
-                                    sys.stdout.flush()
-                            except serial.SerialTimeoutException:
-                                # skip, report
-                                actuallySent = self.nRequested  # pyserial does not report this sufficiently
-                                sys.stdout.write("\nsend_queue_as_ready: writeTimeoutError, on ready request\n")
-                                sys.stdout.flush()
-                            if actuallySent == 1:
-                                self.last_request_ready = time.time()
+    #             ### sending
+    #             if self.tx_index < len(self.tx_buffer):
+    #                 if self.nRequested > 0:
+    #                     try:
+    #                         t_prewrite = time.time()
+    #                         actuallySent = self.device.write(
+    #                             self.tx_buffer[self.tx_index:self.tx_index+self.nRequested])
+    #                         if time.time()-t_prewrite > 0.02:
+    #                             sys.stdout.write("WARN: write delay 1\n")
+    #                             sys.stdout.flush()
+    #                     except serial.SerialTimeoutException:
+    #                         # skip, report
+    #                         actuallySent = 0  # assume nothing has been sent
+    #                         sys.stdout.write("\nsend_queue_as_ready: writeTimeoutError\n")
+    #                         sys.stdout.flush()
+    #                     self.tx_index += actuallySent
+    #                     self.nRequested -= actuallySent
+    #                     if self.nRequested <= 0:
+    #                         self.last_request_ready = 0  # make sure to request ready
+    #                 elif self.tx_buffer[self.tx_index] in ['!', '~']:  # send control chars no matter what
+    #                     try:
+    #                         t_prewrite = time.time()
+    #                         actuallySent = self.device.write(self.tx_buffer[self.tx_index])
+    #                         if time.time()-t_prewrite > 0.02:
+    #                             sys.stdout.write("WARN: write delay 2\n")
+    #                             sys.stdout.flush()
+    #                     except serial.SerialTimeoutException:
+    #                         actuallySent = 0  # assume nothing has been sent
+    #                         sys.stdout.write("\nsend_queue_as_ready: writeTimeoutError\n")
+    #                         sys.stdout.flush()
+    #                     self.tx_index += actuallySent
+    #                 else:
+    #                     if (time.time()-self.last_request_ready) > 2.0:
+    #                         # ask to send a ready byte
+    #                         # only ask for this when sending is on hold
+    #                         # only ask once (and after a big time out)
+    #                         # print "=========================== REQUEST READY"
+    #                         try:
+    #                             t_prewrite = time.time()
+    #                             actuallySent = self.device.write(self.request_ready_char)
+    #                             if time.time()-t_prewrite > 0.02:
+    #                                 sys.stdout.write("WARN: write delay 3\n")
+    #                                 sys.stdout.flush()
+    #                         except serial.SerialTimeoutException:
+    #                             # skip, report
+    #                             actuallySent = self.nRequested  # pyserial does not report this sufficiently
+    #                             sys.stdout.write("\nsend_queue_as_ready: writeTimeoutError, on ready request\n")
+    #                             sys.stdout.flush()
+    #                         if actuallySent == 1:
+    #                             self.last_request_ready = time.time()
 
-                else:
-                    if self.job_active:
-                        # print "\nG-code stream finished!"
-                        # print "(LasaurGrbl may take some extra time to finalize)"
-                        self.tx_buffer = ""
-                        self.tx_index = 0
-                        self.job_active = False
-                        # ready whenever a job is done, including a status request via '?'
-                        self.status['ready'] = True
-            except OSError:
-                # Serial port appears closed => reset
-                self.close()
-            except ValueError:
-                # Serial port appears closed => reset
-                self.close()
-        else:
-            # serial disconnected
-            self.status['ready'] = False
-
-
+    #             else:
+    #                 if self.job_active:
+    #                     # print "\nG-code stream finished!"
+    #                     # print "(LasaurGrbl may take some extra time to finalize)"
+    #                     self.tx_buffer = ""
+    #                     self.tx_index = 0
+    #                     self.job_active = False
+    #                     # ready whenever a job is done, including a status request via '?'
+    #                     self.status['ready'] = True
+    #else:
+    #    # serial disconnected
+    #    self.status['ready'] = False
 
     def process_status_line(self, line):
         if '#' in line[:3]:

@@ -1,5 +1,6 @@
 import os
 import sys
+import re
 import time
 import ast
 import struct
@@ -119,7 +120,6 @@ class Driveboard:
 
     def serial_read(self):
         data = self.device.read()
-        #print('type', type(data))
         if not data:
             raise RuntimeError('no read data - maybe serial port was closed?')
         for byte in data:
@@ -138,7 +138,6 @@ class Driveboard:
                             print('Status change:', key, repr(value2))
                     self.status = self.next_status
                     self.next_status = {}
-                    #print('status frame complete:', repr(self.status))
                 else:
                     print('unhandled rx', repr(bytes([byte])), name)
             elif 31 < byte < 65:  # stop error markers
@@ -181,7 +180,7 @@ class Driveboard:
             ((num&(127<<7))>>7)+128,
             ((num&(127<<14))>>14)+128,
             ((num&(127<<21))>>21)+128,
-            buf.append(param))
+            param)
         self.send_fwbuf(data)
 
     def send_fwbuf(self, data):
@@ -198,6 +197,48 @@ class Driveboard:
         if self.device:
             self.send_command(CMD_STATUS)
             self.last_status_request = time.time()
+
+
+    def gcode_line(self, line):
+        line = line.strip()
+        if line == 'G90':
+            self.send_command(CMD_REF_ABSOLUTE)
+        elif line == 'G91':
+            self.send_command(CMD_REF_RELATIVE)
+        elif line.startswith('G'):
+            parts = re.split(r'([A-Z])', line)
+            print('parts', repr(parts))
+            #parts = re.split(r'([A-Z][^A-Z]*)', line)
+            d = {}
+            params = []
+            cmd = None
+            error = False
+            empty = parts.pop(0)
+            assert empty == ''
+            while parts:
+                letter = parts.pop(0)
+                try:
+                    value = float(parts.pop(0))
+                except ValueError:
+                    print('could not parse float in line', repr(line))
+                    error = True
+                if letter == 'G' and value in [0, 1]:
+                    cmd = CMD_LINE
+                if letter == 'G' and value in [0, 1]:
+                    cmd = CMD_LINE
+                elif letter == 'X': params.append((PARAM_TARGET_X, value))
+                elif letter == 'Y': params.append((PARAM_TARGET_Y, value))
+                elif letter == 'Z': params.append((PARAM_TARGET_Z, value))
+                elif letter == 'F': params.append((PARAM_FEEDRATE, value))
+                else:
+                    print('unknown command or parameter', repr(letter + str(value)))
+                    error = True
+            if cmd and not error:
+                for param, value in params:
+                    self.send_param(param, value)
+                self.send_command(cmd)
+            else:
+                print('Error while parsing gcode line', repr(line), ' (ignored)')
 
     # TODO:
     #### sending super commands (handled in serial rx interrupt)

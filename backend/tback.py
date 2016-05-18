@@ -108,10 +108,10 @@ class WSHandler(tornado.websocket.WebSocketHandler):
         elif command == 'send':
             if args[0] == 'Lasersaur':
                 gcode = ' '.join(args[1:])
-                logging.info('should send: %r', gcode)
                 # TODO: move this into own module (reusing 'parts' local var)
                 for line in gcode.split('\n'):
-                    self.on_gcode(line)
+                    logging.info('executing gcode: %r', gcode)
+                    self.board.gcode_line(gcode)
 
     def on_gcode(self, line):
         line = line.split(';')[0]  # gcode comment
