@@ -4,7 +4,9 @@ Lasersaur Firmware - Open Source Laser cutter
 
 This is the firmware of the [Lasersaur](http://www.lasersaur.com). It originated from Grbl and has become a laser-cutter specific firmware with source simplicity as a central goal. Typically it runs on the Atmega of the Lasersaur's Driveboard but it is also compatible with any Arduino Uno.
 
-For more information see the [Lasersaur Manual](http://www.lasersaur.com/manual/lasaurapp).
+How to get this firmware onto an Arduino Uno? There is a python script that will do the trick. Edit the "flash.py" and follow the instruction in it. You will need a USB cable and the Arduino IDE.
+
+For more information see the [Lasersaur Software Setup Guide](http://www.lasersaur.com/manual/software).
 
 **DISCLAIMER:** Please be aware that operating a DIY laser cutter can be dangerous and requires full awareness of the risks involved. You build the machine and you will have to make sure it is safe. The instructions of the Lasersaur project and related software come without any warranty or guarantees whatsoever. All information is provided as-is and without claims to mechanical or electrical fitness, safety, or usefulness. You are fully responsible for doing your own evaluations and making sure your system does not burn, blind, or electrocute people.
 
