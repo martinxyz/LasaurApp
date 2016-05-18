@@ -13,7 +13,6 @@
 <script src="/js/jquery.toastmessage.js"></script>
 <script src="/js/jquery.hotkeys.js"></script>
 <script src="/js/settings.js"></script>
-<script src="/js/app_svgreader.js"></script>
 <script src="/js/app_datahandler.js"></script>
 <script src="/js/app_canvas.js"></script>
 <script src="/js/app.js"></script>
@@ -201,9 +200,9 @@
                                             </button>
                                         <button class="btn btn-large dropdown-toggle" data-toggle="dropdown"><span class="caret"></span></button>
                                         <ul class="dropdown-menu">
-                                            <li><a id="svg_import_72_btn" href="#">Import 72dpi SVG</a></li>
-                                            <li><a id="svg_import_90_btn" href="#">Import 90dpi SVG</a></li>
-                                            <li><a id="svg_import_96_btn" href="#">Import 96dpi SVG</a></li>
+                                            <li><a id="svg_import_72_btn" href="#">force 72dpi SVG scale (Inkscape, Qt)</a></li>
+                                            <li><a id="svg_import_90_btn" href="#">force 90dpi SVG scale (Illustrator, Intaglio)</a></li>
+                                            <li><a id="svg_import_96_btn" href="#">force 96dpi SVG scale (CorelDraw)</a></li>
                                                 <li class="divider"></li>
                                             <li><a id="svg_import_nop_btn" href="#">Import without Optimizing</a></li>
                                         </ul>
@@ -327,6 +326,58 @@
                                 </div>
                             </div> <!-- end of log tab -->
 
+                            <!--  START   CUSTOM GCODE TAB -->
+                            <div id='tab_gcode' class='tab-pane'>
+                                <div id='gcode_content'>
+                                    <textarea id='gcode_edit' style='clear:both; width: 900px;' rows=20></textarea>
+                                    <button id="gcode_submit" class="btn btn-large btn-primary">Send to Lasersaur</button>
+                                </div>
+                            </div>
+
+                            <script>
+                var chunksize = 5000;
+                var gqueue = Array();
+                function queue_gcode(gcode){
+                    var tmp = gcode.split("\n");
+                    var chunk = "";
+                    var lc = 0;
+                    for (var i=0; i<tmp.length; i++){
+                        lc++;
+                        chunk += tmp[i]+"\n";
+                        if (lc>=chunksize){
+                            gqueue.push(chunk);
+                            lc=0;
+                            chunk=""
+                        }
+                    }
+                    if (chunk.length>0){ gqueue.push(chunk); }
+                }
+
+                function process_gcode_queue(){
+
+                    if (progress_not_yet_done_flag==false && gqueue.length > 0){
+                        gcode = gqueue.shift();
+                        progress_not_yet_done_flag=true;
+                        send_gcode(gcode, "New Chunk from Queue Sent.", true);
+                    }
+                    setTimeout("process_gcode_queue()",5000);
+                }
+                setTimeout("process_gcode_queue()",5000);
+
+                $("#cancel_btn").click(function(e){
+                    gqueue = Array();
+                });
+
+                                $('.tabs-left ul').append('<li><a href="#tab_gcode" id="tab_gcode_button" data-toggle="tab"><i class="icon-exclamation-sign" style="margin-right:2px"></i> Gcode</a></li>');
+                                $("#gcode_submit").click(function(e) {
+                                    var gcode = $('#gcode_edit').val();
+                                    if (gcode){
+                                        //send_gcode(gcode, "G-Code sent to backend.", true);
+                                        queue_gcode(gcode);
+                    }
+                                });
+                            </script>
+                            <!-- END      CUSTOM GCODE TAB -->
                             <!--content end-->
                         </div>
                     </div>

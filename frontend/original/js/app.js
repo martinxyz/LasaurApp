@@ -319,12 +319,12 @@ $(document).ready(function(){
         lasaurapp_version_reported = true;
       }
       // schedule next hardware poll
-      setTimeout(function() {poll_hardware_status()}, 4000);
+      setTimeout(function() {poll_hardware_status()}, 300);
     }).error(function() {
       // lost connection to server
       connect_btn_set_state(false);
       // schedule next hardware poll
-      setTimeout(function() {poll_hardware_status()}, 8000);
+      setTimeout(function() {poll_hardware_status()}, 1000);
     });
   }
   // kick off hardware polling
@@ -419,7 +419,7 @@ $(document).ready(function(){
     // $().uxmessage('notice', gcode.replace(/\n/g, '<br>'));
     send_gcode(gcode, "Stopping ...", false); 
     var delayedresume = setTimeout(function() {
-      var gcode = '~\nG90\nM81\nG0X0Y0F'+app_settings.max_seek_speed+'\n'  // ~ is resume char
+      var gcode = '~\nG90\nG0X0Y0F'+app_settings.max_seek_speed+'\nM81\n'  // ~ is resume char
       // $().uxmessage('notice', gcode.replace(/\n/g, '<br>'));
       send_gcode(gcode, "Resetting ...", false);
     }, 1000);
