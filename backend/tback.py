@@ -66,7 +66,7 @@ class WSHandler(tornado.websocket.WebSocketHandler):
         WSHandler.clients.remove(self)
 
     def on_message(self, message):
-        logging.info("got message %r", message)
+        #logging.info("got message %r", message)
         #parsed = tornado.escape.json_decode(message)
         #print(parsed)
 
@@ -110,33 +110,23 @@ class WSHandler(tornado.websocket.WebSocketHandler):
                 gcode = ' '.join(args[1:])
                 # TODO: move this into own module (reusing 'parts' local var)
                 for line in gcode.split('\n'):
-                    logging.info('executing gcode: %r', gcode)
-                    self.board.gcode_line(gcode)
+                    if line:
+                        self.on_gcode(line)
+        else:
+            logging.warning("got unknown message %r", message)
 
     def on_gcode(self, line):
-        line = line.split(';')[0]  # gcode comment
-        parts = line.strip()
-        if not parts:
-            return
-        args = {}
-        cmd = parts[0]
-        for part in parts[1:]:
-            letter = part[0]
-            number = part[1:]
-            args[letter] = number
-        if cmd == '?':
+        line = line.split(';')[0].strip()  # gcode comment
+        if line == '?': # status
             st = self.board.status
             # status report (per client)
             # https://github.com/grbl/grbl/wiki/Interfacing-with-Grbl
             #data = '<Idle,MPos:0.000,0.000,0.000,WPos:0.000,0.000,0.000>'
-            data = '<Idle,MPos:0.000,0.000,0.000,WPos:0.000,0.000,0.000>'
-            #data = '<asldfkasjfd>'
+            data = '<Idle,MPos:%.3f,%.3f,%.3f,WPos:0.000,0.000,0.000>' % (st['INFO_POS_X'], st['INFO_POS_Y'], st['INFO_POS_Z'])
             self.write_message({'P': 'Lasersaur', 'D': data})
-        if cmd in ('G0', 'G1'):
-            print('should move to', args.get('X'), args.get('Y'), args.get('Z'))
         else:
-            print('unknown command:', cmd)
-
+            print('executing gcode: %r' % line)
+            self.board.gcode_line(line)
 
     def check_origin(self, origin):
         # TODO: this is bad; we don't really want javascript from

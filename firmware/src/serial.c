@@ -8,7 +8,7 @@
 
   Inspired by the wiring_serial module by David A. Mellis which
   used to be a part of the Arduino project.
-   
+
   LasaurGrbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
@@ -98,7 +98,7 @@ void serial_init() {
 	  
 	// defaults to 8-bit, no parity, 1 stop bit
 
-  serial_write(INFO_HELLO);
+  serial_write_param(INFO_STARTUP_GREETING, 123.456);
 }
 
 

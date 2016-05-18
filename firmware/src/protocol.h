@@ -103,8 +103,6 @@
 #define INFO_STACK_CLEARANCE 'u'
 #define INFO_DELAYED_MICROSTEPS 't'
 
-#define INFO_HELLO '~'
-
 // super status:
 #define INFO_OFFCUSTOM_X 'a'
 #define INFO_OFFCUSTOM_Y 'b'
@@ -112,7 +110,7 @@
 #define INFO_FEEDRATE 'g'
 #define INFO_PULSE_FREQUENCY 'h'
 #define INFO_PULSE_DURATION 'i'
-
+#define INFO_STARTUP_GREETING 'j'
 
 
 // Initialize the parser.

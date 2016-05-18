@@ -5,6 +5,7 @@ import time
 import ast
 import struct
 import serial
+import logging
 #import serial.tools.list_ports
 from tornado.ioloop import IOLoop, PeriodicCallback
 
@@ -68,18 +69,21 @@ class Driveboard:
         if self.device is not None:
             return
         try:
-            print('opening serial port', repr(conf['serial_port']), 'baudrate', conf['baudrate'])
+            logging.info('opening serial port %r baudrate %s', conf['serial_port'], conf['baudrate'])
             self.device = serial.Serial(conf['serial_port'], conf['baudrate'])
             self.device.timeout = 0
             self.device.write_timeout = 0
             self.device.nonblocking()
             self.io_loop.add_handler(self.device, self.serial_event, IOLoop.READ)
         except serial.SerialException as e:
-            print(e)
+            logging.error(e)
             self.device = None
             return str(e)
 
+        self.greeting_timeout = self.io_loop.call_later(2.0, self.on_greeting_timeout)
+
     def disconnect(self):
+        logging.info('disconnecting from serial port')
         self.io_loop.remove_handler(self.device)
         self.device.close()
         self.device = None
@@ -94,14 +98,14 @@ class Driveboard:
                 self.serial_read()
             except serial.SerialException:
                 self.disconnect()
-                print('Error while reading - disconnecting. Exception follows:')
+                logging.error('Error while reading - disconnecting. Exception follows:')
                 raise
         if events & IOLoop.WRITE:
-            self.serial_write(b'')
+            self.serial_write()
 
-    def serial_write(self, data):
+    def serial_write(self, data=b''):
         if not self.device:
-            print('write ignored (device not open):', repr(data))
+            logging.error('write ignored (device not open): %r', data)
             return
         queue = self.serial_write_queue
         for b in data:
@@ -113,7 +117,7 @@ class Driveboard:
             #print('tx', repr(queue[:n]))
             del queue[:n]
             if queue:
-                print(len(queue), 'bytes still waiting in queue after tx')
+                logging.warning('%d bytes still waiting in queue after tx', len(queue))
                 self.io_loop.update_handler(fd, IOLoop.READ | IOLoop.WRITE)
         else:
             self.io_loop.update_handler(fd, IOLoop.READ)
@@ -127,19 +131,21 @@ class Driveboard:
             if byte < 32:  # flow
                 if byte == CMD_CHUNK_PROCESSED:
                     self.firmbuf_used -= TX_CHUNK_SIZE
+                    logging.info('chunk processed, firmbuf_used %d/%d', self.firmbuf_used, FIRMBUF_SIZE)
+                    self.send_fwbuf(b'')
                     if self.firmbuf_used < 0:
-                        print("ERROR: firmware buffer tracking too low")
+                        logging.error('firmware buffer tracking too low')
                 elif byte == STATUS_END:
                     self.last_status_report = time.time()
                     for key in sorted(set(self.status).union(set(self.next_status))):
                         value1 = self.status.get(key)
                         value2 = self.next_status.get(key)
                         if value1 != value2:
-                            print('Status change:', key, repr(value2))
+                            logging.info('Status change: %s %r', key, value2)
                     self.status = self.next_status
                     self.next_status = {}
                 else:
-                    print('unhandled rx', repr(bytes([byte])), name)
+                    logging.warning('unhandled rx %r %s', bytes([byte]), name)
             elif 31 < byte < 65:  # stop error markers
                 self.next_status[name] = True
             elif 64 < byte < 91:  # info flags
@@ -150,18 +156,21 @@ class Driveboard:
                              + (self.pdata[2]-128)*16384
                              + (self.pdata[1]-128)*128
                              + (self.pdata[0]-128))- 134217728)/1000.0
+                    self.pdata = []
+                    if name == 'INFO_STARTUP_GREETING':
+                        self.on_startup_greeting(value)
+                    else:
+                        self.next_status[name] = value
                 else:
-                    print('ERROR: not enough parameter data', name, len(self.pdata))
-                self.pdata = []
-                self.next_status[name] = value
+                    logging.error('not enough parameter data %s %d', name, len(self.pdata))
             elif byte > 127:  # data
                 if len(self.pdata) < 4:
                     self.pdata.append(byte)
                 else:
-                    print("ERROR: invalid data")
+                    logging.error("invalid data")
                     self.pdata = []
             else:
-                assert False  # cannot be reached
+                logging.fatal('received invalid byte %d (firmware does never send this byte)', byte)
 
     def send_command(self, cmd):
         if cmd < 32:
@@ -183,14 +192,14 @@ class Driveboard:
             param)
         self.send_fwbuf(data)
 
-    def send_fwbuf(self, data):
+    def send_fwbuf(self, data=b''):
         self.firmbuf_queue += data
         available = FIRMBUF_SIZE - self.firmbuf_used
         if available > TX_CHUNK_SIZE and self.firmbuf_queue:
             out = self.firmbuf_queue[:available]
             del self.firmbuf_queue[:available]
             self.firmbuf_used += len(out)
-            print('firmbuf_used', self.firmbuf_used, 'of', FIRMBUF_SIZE)
+            logging.info('firmbuf_used %d/%d', self.firmbuf_used, FIRMBUF_SIZE)
             self.serial_write(out)
 
     def status_timer_cb(self):
@@ -198,47 +207,54 @@ class Driveboard:
             self.send_command(CMD_STATUS)
             self.last_status_request = time.time()
 
+    def on_startup_greeting(self, value):
+        if value - 123.456 < 0.001:
+            if self.greeting_timeout is not None:
+                self.io_loop.remove_timeout(self.greeting_timeout)
+                self.greeting_timeout = None
+                logging.info('got firmware startup greeting')
+            else:
+                logging.warning('got firmware startup greeting; unexpected reboot!')
+            self.firmbuf_used = 0
+        else:
+            logging.warning('invalid firmware startup greeting: %r', repr(value))
+
+    def on_greeting_timeout(self):
+        logging.warning('The firmware did not send a startup greeting! Buffer tracking may be off.')
 
     def gcode_line(self, line):
         line = line.strip()
-        if line == 'G90':
+        parts = re.split(r'([A-Z])', line)
+        if parts[0] != '' or len(parts) < 3:
+            logging.warning('gcode %r does not parse', line)
+            return
+        command = (parts[1] + parts[2]).strip()
+        parts = parts[3:]
+
+        args = {}
+        while parts:
+            letter = parts.pop(0).strip()
+            try:
+                value = float(parts.pop(0))
+                args[letter]  = value
+            except ValueError:
+                logging.warning('could not parse float in gcode %r', line)
+                return
+
+        if command == 'G90':
             self.send_command(CMD_REF_ABSOLUTE)
-        elif line == 'G91':
+        elif command == 'G91':
             self.send_command(CMD_REF_RELATIVE)
-        elif line.startswith('G'):
-            parts = re.split(r'([A-Z])', line)
-            print('parts', repr(parts))
-            #parts = re.split(r'([A-Z][^A-Z]*)', line)
-            d = {}
-            params = []
-            cmd = None
-            error = False
-            empty = parts.pop(0)
-            assert empty == ''
-            while parts:
-                letter = parts.pop(0)
-                try:
-                    value = float(parts.pop(0))
-                except ValueError:
-                    print('could not parse float in line', repr(line))
-                    error = True
-                if letter == 'G' and value in [0, 1]:
-                    cmd = CMD_LINE
-                if letter == 'G' and value in [0, 1]:
-                    cmd = CMD_LINE
-                elif letter == 'X': params.append((PARAM_TARGET_X, value))
-                elif letter == 'Y': params.append((PARAM_TARGET_Y, value))
-                elif letter == 'Z': params.append((PARAM_TARGET_Z, value))
-                elif letter == 'F': params.append((PARAM_FEEDRATE, value))
-                else:
-                    print('unknown command or parameter', repr(letter + str(value)))
-                    error = True
-            if cmd and not error:
-                for param, value in params:
-                    self.send_param(param, value)
-                self.send_command(cmd)
-            else:
-                print('Error while parsing gcode line', repr(line), ' (ignored)')
+        elif command == 'G92':
+            self.send_command(CMD_REF_RELATIVE)
+        elif command in ('G0', 'G1'):
+            if 'X' in args: self.send_param(PARAM_TARGET_X, args['X'])
+            if 'Y' in args: self.send_param(PARAM_TARGET_Y, args['Y'])
+            if 'Z' in args: self.send_param(PARAM_TARGET_Z, args['Z'])
+            if 'F' in args: self.send_param(PARAM_FEEDRATE, args['F'])
+            self.send_command(CMD_LINE)
+        else:
+            logging.warning('unknown gcode command %r', line)
 
     # TODO:
     #### sending super commands (handled in serial rx interrupt)
