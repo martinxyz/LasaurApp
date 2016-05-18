@@ -1,2 +1,2 @@
 #!/bin/bash
-python backend/tback.py
+python3 backend/tback.py
