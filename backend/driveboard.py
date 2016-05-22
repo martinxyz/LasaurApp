@@ -52,6 +52,7 @@ class Driveboard:
         self.device = None
         self.port = port
 
+        self.read_hist = bytearray()
         self.pdata = []
 
         self.firmbuf_used = 0
@@ -67,13 +68,14 @@ class Driveboard:
 
     def connect(self):
         if self.device is not None:
-            return
+            return ''
         try:
             logging.info('opening serial port %r baudrate %s', conf['serial_port'], conf['baudrate'])
             self.device = serial.Serial(conf['serial_port'], conf['baudrate'])
             self.device.timeout = 0
             self.device.write_timeout = 0
             self.device.nonblocking()
+            self.protocol_errors = 0
             self.io_loop.add_handler(self.device, self.serial_event, IOLoop.READ)
         except serial.SerialException as e:
             logging.error(e)
@@ -81,9 +83,10 @@ class Driveboard:
             return str(e)
 
         self.greeting_timeout = self.io_loop.call_later(2.0, self.on_greeting_timeout)
+        return ''
 
     def disconnect(self):
-        logging.info('disconnecting from serial port')
+        logging.info('disconnecting from serial port %r', conf['serial_port'])
         self.io_loop.remove_handler(self.device)
         self.device.close()
         self.device = None
@@ -123,9 +126,15 @@ class Driveboard:
             self.io_loop.update_handler(fd, IOLoop.READ)
 
     def serial_read(self):
-        data = self.device.read()
+        data = self.device.read(2000)
         if not data:
             raise RuntimeError('no read data - maybe serial port was closed?')
+
+        # for error diagnostics
+        self.read_hist.extend(data)
+        del self.read_hist[:-80]
+        print_hist = False
+
         for byte in data:
             name = markers_rx.get(byte, repr(byte))
             if byte < 32:  # flow
@@ -134,7 +143,8 @@ class Driveboard:
                     logging.info('chunk processed, firmbuf_used %d/%d', self.firmbuf_used, FIRMBUF_SIZE)
                     self.send_fwbuf(b'')
                     if self.firmbuf_used < 0:
-                        logging.error('firmware buffer tracking too low')
+                        logging.error('firmware buffer tracking too low (%d), trying to recover', self.firmware)
+                        self.firmbuf_used += 1  # slow (but safe) recovery
                 elif byte == STATUS_END:
                     self.last_status_report = time.time()
                     for key in sorted(set(self.status).union(set(self.next_status))):
@@ -163,14 +173,21 @@ class Driveboard:
                         self.next_status[name] = value
                 else:
                     logging.error('not enough parameter data %s %d', name, len(self.pdata))
+                    print_hist = True
             elif byte > 127:  # data
                 if len(self.pdata) < 4:
                     self.pdata.append(byte)
                 else:
-                    logging.error("invalid data")
+                    logging.error("invalid data (rx history %s)")
                     self.pdata = []
+                    print_hist = True
             else:
-                logging.fatal('received invalid byte %d (firmware does never send this byte)', byte)
+                logging.fatal('received invalid byte %d (firmware should never send this byte) (rx history %s)', byte, self.read_hist)
+                print_hist = True
+
+        if print_hist:
+            hist = self.read_hist.decode('unicode-escape')
+            logging.error('Last 80 bytes from firmware: %r', hist)
 
     def send_command(self, cmd):
         if cmd < 32:
@@ -220,7 +237,19 @@ class Driveboard:
             logging.warning('invalid firmware startup greeting: %r', repr(value))
 
     def on_greeting_timeout(self):
-        logging.warning('The firmware did not send a startup greeting! Buffer tracking may be off.')
+        hist = self.read_hist.decode('unicode-escape')
+        logging.error('Did not receive the expected firmware startup greeting!')
+        logging.error('Last 80 bytes from firmware: %r', hist)
+
+        if '# LasaurGrbl' in hist:
+            logging.error('This is the old lasersaur firmware. Please flash the new one.')
+            self.disconnect()
+        elif self.last_status_report < time.time() - 0.5:
+            logging.error('Also, there was no response to our status requests.')
+            self.disconnect()
+        else:
+            logging.error('However, it seems to respond to our status requests.')
+            logging.error('Not sure if the firmware is in a clean state. Buffer tracking may need recovery.')
 
     def gcode_line(self, line):
         line = line.strip()

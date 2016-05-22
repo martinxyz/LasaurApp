@@ -40,6 +40,7 @@ class Application(tornado.web.Application):
             #static_path=os.path.join(os.path.dirname(__file__), "static"),
             xsrf_cookies=True,
             debug=True,
+            autoreload=False,
         )
         super(Application, self).__init__(handlers, **settings)
 
@@ -89,8 +90,7 @@ class WSHandler(tornado.websocket.WebSocketHandler):
             port = args[0]
             error = None
             if port == 'Lasersaur':
-                if not self.board.is_connected():
-                    error = self.board.connect()
+                error = self.board.connect()
             else:
                 error = 'Port must be "Lasersaur"'
             if not error:
