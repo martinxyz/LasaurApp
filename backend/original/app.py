@@ -14,7 +14,7 @@ from filereaders import read_svg, read_dxf, read_ngc
 
 
 APPNAME = "lasaurapp"
-VERSION = "14.11b"
+VERSION = "16.05 (pulseraster branch)"
 COMPANY_NAME = "com.nortd.labs"
 SERIAL_PORT = None
 BITSPERSECOND = 57600
@@ -341,17 +341,6 @@ def set_pause(flag):
         else:
             return '0'
 
-
-@route('/flash_firmware')
-@route('/flash_firmware/:firmware_file')
-def flash_firmware_handler(firmware_file=FIRMWARE):
-    ret.append('<h2>Flashing not supported by this backend!</h2>')
-    return ''
-
-@route('/build_firmware')
-def build_firmware_handler():
-    ret.append('<h2>Building not supported by this backend!</h2>')
-    return ''
 
 @route('/gcode', method='POST')
 def job_submit_handler():

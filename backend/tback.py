@@ -27,11 +27,11 @@ class Application(tornado.web.Application):
         board.connect()
         #self.board.serial_write_raw(b'aslfdkajsflaksjflask')
         handlers = [
-            (r"/", MainHandler),
             (r"/ws", WSHandler, dict(board=board)),
             #(r"/status", StatusHandler, dict(board=board)),
+            (r"/(build|flash|reset)", FirmwareHandler, dict(board=board)),
             #(r"/serial/([0-9]+)", OldApiSerialHandler, dict(board=board)),
-            (r"/(.*)", tornado.web.StaticFileHandler, {"path": "../frontend"}),
+            (r"/(.*)", tornado.web.StaticFileHandler, {"path": "../frontend/admin", "default_filename": "index.html"}),
 
         ]
         settings = dict(
@@ -40,13 +40,14 @@ class Application(tornado.web.Application):
             #static_path=os.path.join(os.path.dirname(__file__), "static"),
             xsrf_cookies=True,
             debug=True,
-            autoreload=False,
+            #autoreload=False,
         )
         super(Application, self).__init__(handlers, **settings)
 
-class MainHandler(tornado.web.RequestHandler):
+class FirmwareHandler(tornado.web.RequestHandler):
     def get(self):
-        self.render("index.html", messages=['foo', 'bar', 'baz'])
+        print('got it')
+        return
 
 class WSHandler(tornado.websocket.WebSocketHandler):
     clients = set()
@@ -116,6 +117,8 @@ class WSHandler(tornado.websocket.WebSocketHandler):
             logging.warning("got unknown message %r", message)
 
     def on_gcode(self, line):
+        if not self.board.is_connected:
+            return
         line = line.split(';')[0].strip()  # gcode comment
         if line == '?': # status
             st = self.board.status
