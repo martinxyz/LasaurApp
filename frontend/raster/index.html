@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Pulse Raster</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="bootstrap.min.css">
+  <script src="jquery-2.2.4.min.js"></script>
+  <script src="bootstrap.min.js"></script>
+  <script src="angular.min.js"></script>
+  <script src="raster.js"></script>
+</head>
+<div class="container" ng-app="RasterApp" ng-controller="RasterController">
+  <div class="row">
+    <h1>Raster Test</h1>
+    <form>
+      <label class="btn btn-lg btn-primary btn-file">
+        Open... <input type="file" accept=".png,.jpg,.jpeg,.bmp" style="display: none;">
+      </label>
+      PNG, JPEG, BMP
+      <br/>
+    </form>
+    <form>
+      {{img_w}} x {{img_h}} pixels
+      <fieldset class="form-group">
+        Energy Density: <input type="number" min="0" step="0.1" ng-model="energy_density" ng-change="recalculate()"> energy per mm^2
+      </fieldset>
+      <fieldset class="form-group">
+        Pulses per mm: <input type="number" min="0" step="2.0" ng-model="requested_ppmm" ng-change="recalculate()"> (note: will only be approximated)
+      </fieldset>
+      Selected pulse duration: {{actual_pulse}} ticks ({{pulse_duration_us()|number:0}} microseconds)<br/>
+      Actually doing {{actual_ppmm|number:1}} pulses per mm (requested: {{requested_ppmm|number:1}})<br/>
+    </form>
+  </div>
+</div>
+</html>
