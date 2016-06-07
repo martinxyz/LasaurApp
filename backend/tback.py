@@ -32,6 +32,7 @@ class Application(tornado.web.Application):
             (r"/(build|flash|reset)", FirmwareHandler, dict(board=board)),
             (r"/config", ConfigHandler),
             # (r"/serial/([0-9]+)", OldApiSerialHandler, dict(board=board)),
+            (r"/raster/(.*)", tornado.web.StaticFileHandler, {"path": "../frontend/raster", "default_filename": "index.html"}),
             (r"/(.*)", tornado.web.StaticFileHandler, {"path": "../frontend/admin", "default_filename": "index.html"}),
 
         ]
