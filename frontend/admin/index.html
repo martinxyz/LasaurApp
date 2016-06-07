@@ -7,6 +7,8 @@
   <link rel="stylesheet" href="bootstrap.min.css">
   <script src="jquery-2.2.4.min.js"></script>
   <script src="bootstrap.min.js"></script>
+  <script src="angular.min.js"></script>
+  <script src="admin.js"></script>
   <style>
     .navbar {
       margin-bottom: 0;
@@ -32,7 +34,7 @@
   </div>
 </nav>
 
-<div class="container-fluid text-center">
+<div class="container-fluid text-center" ng-app="LasaurAdmin" ng-controller="AdminController">
   <div class="row content">
     <div class="col-sm-8 text-left">
       <h2>Apps</h2>
@@ -47,8 +49,18 @@
         Pulseraster
       </a>
 
+      <h2>Lasersaur</h2>
+      <table class="table table-bordered">
+        <tr><td>work area</td> <td> {{config.workspace[0]}}mm x {{config.workspace[1]}}mm</td></tr>
+        <tr><td>seekrate</td> <td> {{config.seekrate}} mm/s</td></tr>
+      </table>
+
       <h2>Firmware</h2>
-      <p>Current firmware: ???</p>
+      <table class="table table-bordered">
+        <tr><td>firmware version</td> <td>{{firmware_version}}</td></tr>
+        <tr><td>serial port</td> <td>{{config.serial_port}}</td></tr>
+        <tr><td>baudrate</td> <td>{{config.baudrate}}</td></tr>
+      </table>
 
       <div class="dropdown">
         <button class="btn btn-danger dropdown-toggle" type="button" data-toggle="dropdown">

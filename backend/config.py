@@ -31,13 +31,13 @@ conf = {
     'stordir': None,     # defined further down
     'firmware': 'LasaurGrbl.hex',
     'tolerance': 0.01,
-    'workspace': [1220,610,0],
+    'workspace': [12],
     # 'intensity_minmax': [0,255],
     'seekrate': 6000,
     'feedrate': 2000,
     'intensity': 0,
     'kerf': 0.3,
-    'max_raster_size': [3000,3000],
+    'max_raster_size': [3000, 3000],
     'max_jobs_in_list': 20,
     'users': {
         'laser': 'laser',

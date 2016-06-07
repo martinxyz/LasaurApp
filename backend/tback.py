@@ -25,29 +25,37 @@ class Application(tornado.web.Application):
     def __init__(self):
         board = driveboard.Driveboard()
         board.connect()
-        #self.board.serial_write_raw(b'aslfdkajsflaksjflask')
+        # self.board.serial_write_raw(b'aslfdkajsflaksjflask')
         handlers = [
             (r"/ws", WSHandler, dict(board=board)),
-            #(r"/status", StatusHandler, dict(board=board)),
+            # (r"/status", StatusHandler, dict(board=board)),
             (r"/(build|flash|reset)", FirmwareHandler, dict(board=board)),
-            #(r"/serial/([0-9]+)", OldApiSerialHandler, dict(board=board)),
+            (r"/config", ConfigHandler),
+            # (r"/serial/([0-9]+)", OldApiSerialHandler, dict(board=board)),
             (r"/(.*)", tornado.web.StaticFileHandler, {"path": "../frontend/admin", "default_filename": "index.html"}),
 
         ]
         settings = dict(
             # cookie_secret="__TODO:_GENERATE_YOUR_OWN_RANDOM_VALUE_HERE__",  #TODO: check if we need this (besides auth); requires html changes
             template_path=os.path.join(os.path.dirname(__file__), "templates"),
-            #static_path=os.path.join(os.path.dirname(__file__), "static"),
+            # static_path=os.path.join(os.path.dirname(__file__), "static"),
             xsrf_cookies=True,
             debug=True,
-            #autoreload=False,
+            # autoreload=False,
         )
         super(Application, self).__init__(handlers, **settings)
+
+
+class ConfigHandler(tornado.web.RequestHandler):
+    def get(self):
+        self.write(conf)
+
 
 class FirmwareHandler(tornado.web.RequestHandler):
     def get(self):
         print('got it')
         return
+
 
 class WSHandler(tornado.websocket.WebSocketHandler):
     clients = set()
@@ -68,9 +76,9 @@ class WSHandler(tornado.websocket.WebSocketHandler):
         WSHandler.clients.remove(self)
 
     def on_message(self, message):
-        #logging.info("got message %r", message)
-        #parsed = tornado.escape.json_decode(message)
-        #print(parsed)
+        # logging.info("got message %r", message)
+        # parsed = tornado.escape.json_decode(message)
+        # print(parsed)
 
         parts = message.split(' ')
         command = parts[0]
@@ -81,7 +89,7 @@ class WSHandler(tornado.websocket.WebSocketHandler):
                 'Name': 'Lasersaur',
                 'Friendly': 'Lasersaur',
                 'Baudrate': [57600, 115200],
-                #'AvailableBufferAlgorithms': ['lasersaur2'],
+                # 'AvailableBufferAlgorithms': ['lasersaur2'],
                 'AvailableBufferAlgorithms': ['grbl', 'lasersaur2'],
                 'IsOpen': False,
             }]}
@@ -124,8 +132,9 @@ class WSHandler(tornado.websocket.WebSocketHandler):
             st = self.board.status
             # status report (per client)
             # https://github.com/grbl/grbl/wiki/Interfacing-with-Grbl
-            #data = '<Idle,MPos:0.000,0.000,0.000,WPos:0.000,0.000,0.000>'
-            data = '<Idle,MPos:%.3f,%.3f,%.3f,WPos:0.000,0.000,0.000>' % (st['INFO_POS_X'], st['INFO_POS_Y'], st['INFO_POS_Z'])
+            # data = '<Idle,MPos:0.000,0.000,0.000,WPos:0.000,0.000,0.000>'
+            data = '<Idle,MPos:%.3f,%.3f,%.3f,WPos:0.000,0.000,0.000>' % \
+                   (st['INFO_POS_X'], st['INFO_POS_Y'], st['INFO_POS_Z'])
             self.write_message({'P': 'Lasersaur', 'D': data})
         else:
             print('executing gcode: %r' % line)
@@ -137,13 +146,15 @@ class WSHandler(tornado.websocket.WebSocketHandler):
         # In addition, we also should require authentication.
         return True
 
+
 def start_old_backend(public=False, debug=True):
-    original_backend_main = os.path.join(os.path.split(__file__)[0], 'original/app.py')
-    cmd = ['python3', original_backend_main]
+    orig_app = os.path.join(os.path.split(__file__)[0], 'original/app.py')
+    cmd = ['python3', orig_app]
     if public: cmd.append('--public')
     if debug: cmd.append('--debug')
     print('starting original backend:', ' '.join(cmd))
     p = subprocess.Popen(cmd)
+
     def stop_old_backend():
         print('killing original backend')
         p.terminate()
