@@ -68,10 +68,6 @@ class SerialManagerClass:
 
     @gen.coroutine
     def ws_connect(self):
-        self.rx_buffer = ""
-        self.tx_buffer = ""
-        self.tx_index = 0
-        self.remoteXON = True
         self.reset_status()
 
         ws = yield tornado.websocket.websocket_connect('ws://localhost:7777/serial')
@@ -161,20 +157,21 @@ class SerialManagerClass:
 
     def cancel_queue(self):
         print('TODO: cancel queue')
-        self.tx_buffer = ""
-        self.tx_index = 0
-        self.job_active = False
+        #self.tx_buffer = ""
+        #self.tx_index = 0
+        #self.job_active = False
 
 
     def is_queue_empty(self):
-        return self.tx_index >= len(self.tx_buffer)
+        print('TODO: is_queue_empty')
 
 
     def get_queue_percentage_done(self):
-        buflen = len(self.tx_buffer)
-        if buflen == 0:
-            return ""
-        return str(100*self.tx_index/float(buflen))
+        print('TODO: get_queue_percentage_done')
+        #buflen = len(self.tx_buffer)
+        #if buflen == 0:
+        #    return ""
+        #return str(100*self.tx_index/float(buflen))
 
 
     def set_pause(self, flag):
@@ -189,98 +186,6 @@ class SerialManagerClass:
                 self.status['paused'] = False
                 return False
 
-
-    # def send_queue_as_ready(self):
-    #     """Continuously call this to keep processing queue."""
-    #     return
-    #     if self.device and not self.status['paused']:
-    #         try:
-    #             ### receiving
-    #             chars = self.device.read(self.RX_CHUNK_SIZE)
-    #             if len(chars) > 0:
-    #                 ## check for data request
-    #                 if self.ready_char in chars:
-    #                     # print "=========================== READY"
-    #                     self.nRequested = self.TX_CHUNK_SIZE
-    #                     #remove control chars
-    #                     chars = chars.replace(self.ready_char, "")
-    #                 ## assemble lines
-    #                 self.rx_buffer += chars
-    #                 while(1):  # process all lines in buffer
-    #                     posNewline = self.rx_buffer.find('\n')
-    #                     if posNewline == -1:
-    #                         break  # no more complete lines
-    #                     else:  # we got a line
-    #                         line = self.rx_buffer[:posNewline]
-    #                         self.rx_buffer = self.rx_buffer[posNewline+1:]
-    #                     self.process_status_line(line)
-    #             else:
-    #                 if self.nRequested == 0:
-    #                     time.sleep(0.001)  # no rx/tx, rest a bit
-
-    #             ### sending
-    #             if self.tx_index < len(self.tx_buffer):
-    #                 if self.nRequested > 0:
-    #                     try:
-    #                         t_prewrite = time.time()
-    #                         actuallySent = self.device.write(
-    #                             self.tx_buffer[self.tx_index:self.tx_index+self.nRequested])
-    #                         if time.time()-t_prewrite > 0.02:
-    #                             sys.stdout.write("WARN: write delay 1\n")
-    #                             sys.stdout.flush()
-    #                     except serial.SerialTimeoutException:
-    #                         # skip, report
-    #                         actuallySent = 0  # assume nothing has been sent
-    #                         sys.stdout.write("\nsend_queue_as_ready: writeTimeoutError\n")
-    #                         sys.stdout.flush()
-    #                     self.tx_index += actuallySent
-    #                     self.nRequested -= actuallySent
-    #                     if self.nRequested <= 0:
-    #                         self.last_request_ready = 0  # make sure to request ready
-    #                 elif self.tx_buffer[self.tx_index] in ['!', '~']:  # send control chars no matter what
-    #                     try:
-    #                         t_prewrite = time.time()
-    #                         actuallySent = self.device.write(self.tx_buffer[self.tx_index])
-    #                         if time.time()-t_prewrite > 0.02:
-    #                             sys.stdout.write("WARN: write delay 2\n")
-    #                             sys.stdout.flush()
-    #                     except serial.SerialTimeoutException:
-    #                         actuallySent = 0  # assume nothing has been sent
-    #                         sys.stdout.write("\nsend_queue_as_ready: writeTimeoutError\n")
-    #                         sys.stdout.flush()
-    #                     self.tx_index += actuallySent
-    #                 else:
-    #                     if (time.time()-self.last_request_ready) > 2.0:
-    #                         # ask to send a ready byte
-    #                         # only ask for this when sending is on hold
-    #                         # only ask once (and after a big time out)
-    #                         # print "=========================== REQUEST READY"
-    #                         try:
-    #                             t_prewrite = time.time()
-    #                             actuallySent = self.device.write(self.request_ready_char)
-    #                             if time.time()-t_prewrite > 0.02:
-    #                                 sys.stdout.write("WARN: write delay 3\n")
-    #                                 sys.stdout.flush()
-    #                         except serial.SerialTimeoutException:
-    #                             # skip, report
-    #                             actuallySent = self.nRequested  # pyserial does not report this sufficiently
-    #                             sys.stdout.write("\nsend_queue_as_ready: writeTimeoutError, on ready request\n")
-    #                             sys.stdout.flush()
-    #                         if actuallySent == 1:
-    #                             self.last_request_ready = time.time()
-
-    #             else:
-    #                 if self.job_active:
-    #                     # print "\nG-code stream finished!"
-    #                     # print "(LasaurGrbl may take some extra time to finalize)"
-    #                     self.tx_buffer = ""
-    #                     self.tx_index = 0
-    #                     self.job_active = False
-    #                     # ready whenever a job is done, including a status request via '?'
-    #                     self.status['ready'] = True
-    #else:
-    #    # serial disconnected
-    #    self.status['ready'] = False
 
     def process_status_line(self, line):
         if '#' in line[:3]:

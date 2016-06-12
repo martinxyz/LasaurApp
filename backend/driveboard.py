@@ -44,6 +44,7 @@ for name, value in get_firmware_constants():
         globals()[name] = value
 
 class Driveboard:
+    version = '# LasaurGrbl 2.0 (pulseraster)'
     def __init__(self, serial_port, baudrate):
         self.serial_port = serial_port
         self.baudrate = baudrate
@@ -143,7 +144,7 @@ class Driveboard:
                     logging.info('chunk processed, firmbuf_used %d/%d', self.firmbuf_used, FIRMBUF_SIZE)
                     self.send_fwbuf(b'')
                     if self.firmbuf_used < 0:
-                        logging.error('firmware buffer tracking too low (%d), trying to recover', self.firmware)
+                        logging.error('firmware buffer tracking too low (%d), trying to recover', self.firmbuf_used)
                         self.firmbuf_used += 1  # slow (but safe) recovery
                 elif byte == STATUS_END:
                     self.last_status_report = time.time()
@@ -253,10 +254,14 @@ class Driveboard:
 
     def gcode_line(self, line):
         line = line.strip()
+        if line == 'version':
+            return self.version
+
         parts = re.split(r'([A-Z])', line)
         if parts[0] != '' or len(parts) < 3:
-            logging.warning('gcode %r does not parse', line)
-            return
+            error = 'gcode %r does not parse' % line
+            logging.warning(error)
+            return 'error: ' + error
         command = (parts[1] + parts[2]).strip()
         parts = parts[3:]
 
@@ -267,8 +272,9 @@ class Driveboard:
                 value = float(parts.pop(0))
                 args[letter]  = value
             except ValueError:
-                logging.warning('could not parse float in gcode %r', line)
-                return
+                error = 'could not parse float in gcode ' + repr(line)
+                logging.warning(error)
+                return error
 
         if command == 'G90':
             self.send_command(CMD_REF_ABSOLUTE)
@@ -283,7 +289,10 @@ class Driveboard:
             if 'F' in args: self.send_param(PARAM_FEEDRATE, args['F'])
             self.send_command(CMD_LINE)
         else:
-            logging.warning('unknown gcode command %r', line)
+            error = 'unknown gcode command ' + repr(line)
+            logging.warning(error)
+            return error
+        return 'ok'
 
     # TODO:
     #### sending super commands (handled in serial rx interrupt)
