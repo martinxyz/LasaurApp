@@ -9,8 +9,6 @@ import logging
 #import serial.tools.list_ports
 from tornado.ioloop import IOLoop, PeriodicCallback
 
-from config import conf
-
 ## firmware constants, need to match device firmware
 ## (maybe they should be reported by the firmware's superstatus)
 TX_CHUNK_SIZE = 16 # number of bytes written to the device in one go
@@ -46,11 +44,13 @@ for name, value in get_firmware_constants():
         globals()[name] = value
 
 class Driveboard:
-    def __init__(self, port='/dev/ttyUSB0'):
+    def __init__(self, serial_port, baudrate):
+        self.serial_port = serial_port
+        self.baudrate = baudrate
+
         self.io_loop = IOLoop.current()
         self.serial_write_queue = bytearray()
         self.device = None
-        self.port = port
 
         self.read_hist = bytearray()
         self.pdata = []
@@ -63,15 +63,15 @@ class Driveboard:
         self.last_status_report = 0.0
         self.status = {}
         self.next_status = {}
-        polling_interval = 200 # milliseconds
+        polling_interval = 100  # milliseconds
         PeriodicCallback(self.status_timer_cb, polling_interval).start()
 
     def connect(self):
         if self.device is not None:
             return ''
         try:
-            logging.info('opening serial port %r baudrate %s', conf['serial_port'], conf['baudrate'])
-            self.device = serial.Serial(conf['serial_port'], conf['baudrate'])
+            logging.info('opening serial port %r baudrate %s', self.serial_port, self.baudrate)
+            self.device = serial.Serial(self.serial_port, self.baudrate)
             self.device.timeout = 0
             self.device.write_timeout = 0
             self.device.nonblocking()
@@ -86,7 +86,7 @@ class Driveboard:
         return ''
 
     def disconnect(self):
-        logging.info('disconnecting from serial port %r', conf['serial_port'])
+        logging.info('disconnecting from serial port %r', self.serial_port)
         self.io_loop.remove_handler(self.device)
         self.device.close()
         self.device = None

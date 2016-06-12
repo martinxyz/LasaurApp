@@ -14,8 +14,6 @@ class SerialManagerClass:
     def __init__(self):
         self.ws = None
 
-        self.rx_buffer = ""
-        self.tx_buffer = ""
         self.tx_index = 0
         self.remoteXON = True
 
@@ -76,18 +74,19 @@ class SerialManagerClass:
         self.remoteXON = True
         self.reset_status()
 
-        ws = yield tornado.websocket.websocket_connect('ws://localhost:8989/ws')
+        ws = yield tornado.websocket.websocket_connect('ws://localhost:7777/serial')
         #ws.write_message('list')
         #port_list = json_decode(yield ws.read_message())
-        port = 'Lasersaur'
-        ws.write_message('open ' + port)
+        # ws.write_message('open ' + port)
         res = yield ws.read_message()
-        res = json_decode(res)
-        if res['Cmd'] == 'Open' and res['Port'] == port:
-            print('Websocket port is open.')
-        else:
-            print("'open' command failed, server response: %r" % res)
-            raise RuntimeError
+        #res = json_decode(res)
+        print('got socked saying', repr(res))
+
+        #if res['Cmd'] == 'Open' and res['Port'] == port:
+        #    print('Websocket port is open.')
+        #else:
+        #    print("'open' command failed, server response: %r" % res)
+        #    raise RuntimeError
 
         try:
             self.ws = ws

@@ -1,7 +1,7 @@
 import os
 
 def init():
-    if conf['hardware'] == 'beaglebone':
+    if conf['board'] == 'beaglebone':
         conf['serial_port'] = '/dev/ttyO1'
         # if running as root
         if os.geteuid() == 0:
@@ -112,7 +112,7 @@ def init():
         fw.close()
         print "Stepper driver configure pin is: " + str(ret)
 
-    elif conf['hardware'] == 'raspberrypi':
+    elif conf['board'] == 'raspberrypi':
         import RPi.GPIO
         conf['serial_port'] = '/dev/ttyAMA0'
         # if running as root

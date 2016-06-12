@@ -1,8 +1,31 @@
-import os
-from config import conf
+import sys, os
 
-def init():
-    if conf['hardware'] == 'beaglebone':
+def detect_board():
+    ### check if running on RaspberryPi
+    try:
+        import RPi.GPIO
+        return 'raspberrypi'
+    except ImportError:
+        pass
+
+    ### check if running on BBB
+    # also works on old Beaglebone if named 'lasersaur'
+    # os.uname() on BBB:
+    # ('Linux', 'lasersaur', '3.8.13-bone20',
+    #  '#1 SMP Wed May 29 06:14:59 UTC 2013', 'armv7l')
+    uname = os.uname()
+    if sys.platform == "linux2" and \
+       (uname[1] == 'lasersaur' or '-bone' in uname[2]):
+        return 'beaglebone'
+
+    return 'standard'
+
+def init(board):
+    if board == 'auto-detect':
+        board = detect_board()
+        print('board auto-detect result: %r', board)
+
+    if board == 'beaglebone':
         print('doing beaglebone-specific GPIO hardware init')
 
         # Beaglebone white specific
@@ -110,12 +133,8 @@ def init():
         fw.close()
         print("Stepper driver configure pin is: " + str(ret))
 
-    elif conf['hardware'] == 'raspberrypi':
+    elif board == 'raspberrypi':
         print('doing Raspberry Pi specific GPIO hardware init')
-        import RPi.GPIO
-        # if running as root
-        if os.geteuid() == 0:
-            conf['network_port'] = 80
         import RPi.GPIO as GPIO
         # GPIO.setwarnings(False) # surpress warnings
         GPIO.setmode(GPIO.BCM)  # use chip pin number
@@ -137,8 +156,8 @@ def init():
         # to be edited to deactivate the serial terminal login
         # (basically anything related to ttyAMA0)
 
-    elif conf['hardware'] == 'standard':
+    elif board == 'none':
         print('default hardware, not doing any GPIO initialization')
 
     else:
-        raise RuntimeError('Unknown hardware configured: %r' % conf['hardware'])
+        raise RuntimeError('Unknown board configured: %r' % board)

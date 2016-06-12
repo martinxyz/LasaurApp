@@ -3,27 +3,21 @@ import logging
 import tornado.options
 import tornado.web
 import tornado.websocket
-#from tornado.escape import json_encode, json_decode
 from tornado.ioloop import IOLoop
 import os.path
 import subprocess
 import atexit
+import argparse
+import configparser
 
-from config import conf
 import hardware_init
 import driveboard
 
-from tornado.platform.asyncio import AsyncIOMainLoop
-import asyncio
-
-from tornado.options import define, options
-
-define("port", default=conf['websocket_port'], help="run on the given port", type=int)
-
-
 class Application(tornado.web.Application):
-    def __init__(self):
-        board = driveboard.Driveboard()
+    def __init__(self, conf):
+        board = driveboard.Driveboard(
+            conf['driveboard']['serial_port'],
+            conf['driveboard'].getint('baudrate'))
         board.connect()
         # self.board.serial_write_raw(b'aslfdkajsflaksjflask')
         handlers = [
@@ -32,16 +26,21 @@ class Application(tornado.web.Application):
             (r"/(build|flash|reset)", FirmwareHandler, dict(board=board)),
             (r"/config", ConfigHandler),
             # (r"/serial/([0-9]+)", OldApiSerialHandler, dict(board=board)),
-            (r"/raster/(.*)", tornado.web.StaticFileHandler, {"path": "../frontend/raster", "default_filename": "index.html"}),
-            (r"/(.*)", tornado.web.StaticFileHandler, {"path": "../frontend/admin", "default_filename": "index.html"}),
-
+            (r"/raster/(.*)", tornado.web.StaticFileHandler, {
+                "path": "../frontend/raster",
+                "default_filename": "index.html"
+            }),
+            (r"/(.*)", tornado.web.StaticFileHandler, {
+                "path": "../frontend/admin",
+                "default_filename": "index.html"
+            }),
         ]
         settings = dict(
             # cookie_secret="__TODO:_GENERATE_YOUR_OWN_RANDOM_VALUE_HERE__",  #TODO: check if we need this (besides auth); requires html changes
             template_path=os.path.join(os.path.dirname(__file__), "templates"),
             # static_path=os.path.join(os.path.dirname(__file__), "static"),
             xsrf_cookies=True,
-            debug=True,
+            debug=conf['backend'].getboolean('debug', False),
             # autoreload=False,
         )
         super(Application, self).__init__(handlers, **settings)
@@ -129,7 +128,7 @@ class WSHandler(tornado.websocket.WebSocketHandler):
         if not self.board.is_connected:
             return
         line = line.split(';')[0].strip()  # gcode comment
-        if line == '?': # status
+        if line == '?':  # status
             st = self.board.status
             # status report (per client)
             # https://github.com/grbl/grbl/wiki/Interfacing-with-Grbl
@@ -148,11 +147,14 @@ class WSHandler(tornado.websocket.WebSocketHandler):
         return True
 
 
-def start_old_backend(public=False, debug=True):
-    orig_app = os.path.join(os.path.split(__file__)[0], 'original/app.py')
+def start_old_backend(conf):
+    orig_app = os.path.join(os.path.split(__file__)[0],
+                            'original', 'original_app.py')
     cmd = ['python3', orig_app]
-    if public: cmd.append('--public')
-    if debug: cmd.append('--debug')
+    if conf.getboolean('public', False):
+        cmd.append('--public')
+    if conf.getboolean('debug', False):
+        cmd.append('--debug')
     print('starting original backend:', ' '.join(cmd))
     p = subprocess.Popen(cmd)
 
@@ -161,14 +163,33 @@ def start_old_backend(public=False, debug=True):
         p.terminate()
     atexit.register(stop_old_backend)
 
+
 def main():
-    hardware_init.init()
+    parser = argparse.ArgumentParser(description='Lasersaur backend server')
+    parser.add_argument('configfile', metavar='configfile.ini',
+                        help='port and gpio config file (e.g. beaglebone.ini)')
+    args = parser.parse_args()
+    conf = configparser.ConfigParser()
+    conf.read(args.configfile)
+
+    hardware_init.init(conf['driveboard']['board'])
+
     tornado.options.parse_command_line()
     io_loop = IOLoop.current()
-    app = Application()
-    start_old_backend()
-    app.listen(port=conf['websocket_port'], address=conf['network_host'])
-    app.listen(port=conf['network_port'], address=conf['network_host'])
+    app = Application(conf)
+
+    public = conf.getboolean('backend', 'public')
+
+    start_old_backend(conf['backend'])
+
+    port = conf.getint('backend', 'network_port')
+    if public:
+        addr = ''
+    else:
+        addr = '127.0.0.1'
+
+    app.listen(port=port, address=addr)
+    app.listen(port=7777, address=addr)
     io_loop.start()
 
 if __name__ == "__main__":
