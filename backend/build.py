@@ -1,6 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # Super Awesome LasaurGrbl python flash script.
-# 
+#
 # Copyright (c) 2011 Nortd Labs
 # Open Source by the terms of the Gnu Public License (GPL3) or higher.
 
@@ -18,7 +18,7 @@ if sys.platform == "darwin":  # OSX
     AVRSIZEAPP    = "/Applications/Arduino.app/Contents/Resources/Java/hardware/tools/avr/bin/avr-size"
     AVROBJDUMPAPP = "/Applications/Arduino.app/Contents/Resources/Java/hardware/tools/avr/bin/avr-objdump"
     AVRDUDECONFIG = "/Applications/Arduino.app/Contents/Resources/Java/hardware/tools/avr/etc/avrdude.conf"
-    
+
 elif sys.platform == "win32": # Windows
     AVRDUDEAPP    = "C:\\arduino\\hardware\\tools\\avr\\bin\\avrdude"
     AVRGCCAPP     = "C:\\arduino\\hardware\\tools\\avr\\bin\\avr-gcc"
@@ -26,7 +26,7 @@ elif sys.platform == "win32": # Windows
     AVRSIZEAPP    = "C:\\arduino\\hardware\\tools\\avr\\bin\\avr-size"
     AVROBJDUMPAPP = "C:\\arduino\\hardware\\tools\\avr\\bin\\avr-objdump"
     AVRDUDECONFIG = "C:\\arduino\\hardware\\tools\\avr\\etc\\avrdude.conf"
-    
+
 elif sys.platform == "linux" or sys.platform == "linux2":  #Linux
     AVRDUDEAPP    = "avrdude"
     AVRGCCAPP     = "avr-gcc"
@@ -64,7 +64,7 @@ def build_firmware(firmware_name="LasaurGrbl"):
         shutil.copy('config.h', 'config.orig.h')
         shutil.copy('config.user.h', 'config.h')
         firmware_name = firmware_name + '_user'
-        print "INFO: using config.user.h"
+        print("INFO: using config.user.h")
 
     DEVICE = "atmega328p"
     CLOCK = "16000000"
@@ -75,7 +75,7 @@ def build_firmware(firmware_name="LasaurGrbl"):
 
     for fileobj in OBJECTS:
         run('%(compile)s -c %(obj)s.c -o %(obj)s.o' % {'compile': COMPILE, 'obj':fileobj})
-  
+
     run('%(compile)s -o main.elf %(alldoto)s  -lm' % {'compile': COMPILE, 'alldoto':".o ".join(OBJECTS)+'.o'})
 
     run('%(objcopy)s -j .text -j .data -O ihex main.elf %(product)s.hex' % {'objcopy': AVROBJCOPYAPP, 'obj':fileobj, 'product':BUILDNAME})
@@ -90,7 +90,7 @@ def build_firmware(firmware_name="LasaurGrbl"):
         if os.path.exists('config.user.h'):
             shutil.move('config.orig.h', 'config.h')
         ## clean after upload
-        print "Cleaning up build files."
+        print("Cleaning up build files.")
         for fileobj in OBJECTS:
             f = '%s.o' % (fileobj)
             if os.path.isfile(f):
@@ -101,7 +101,7 @@ def build_firmware(firmware_name="LasaurGrbl"):
         ## move firmware hex file
         firmware_src = firmware_name+'.hex'
         firmware_dst = os.path.join(firmware_dir, firmware_src)
-        print "Moving firmware to standard location", firmware_dst
+        print("Moving firmware to standard location", firmware_dst)
         shutil.move(firmware_src, firmware_dst)
     finally:
         #restore previous cwd

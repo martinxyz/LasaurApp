@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 "build and flash using the backend's scripts and config"
 
 import os, sys, subprocess
