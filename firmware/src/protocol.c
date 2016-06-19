@@ -186,7 +186,15 @@ void on_cmd(uint8_t command) {
   switch(command) {
     case CMD_NONE:
       break;
-    case CMD_LINE:
+    case CMD_LINE_SEEK:
+      planner_line( st.target[X_AXIS], st.target[Y_AXIS], st.target[Z_AXIS], st.feedrate,
+                    0, 0, 0);
+      break;
+    case CMD_LINE_BURN:
+      planner_line( st.target[X_AXIS], st.target[Y_AXIS], st.target[Z_AXIS], st.feedrate,
+                    st.pulse_frequency, st.pulse_duration, 0);
+      break;
+    case CMD_LINE_RASTER:
       planner_line( st.target[X_AXIS], st.target[Y_AXIS], st.target[Z_AXIS], st.feedrate,
                     st.pulse_frequency, st.pulse_duration, st.raster_bytes);
       break;

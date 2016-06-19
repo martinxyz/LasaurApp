@@ -31,10 +31,10 @@
 
 // commands, handled in protocol.c
 #define CMD_NONE 'A'
-#define CMD_LINE 'B'
+// command 'B' (CMD_LINE) was removed
 #define CMD_DWELL 'C'
 
-#define CMD_REF_RELATIVE 'E' 
+#define CMD_REF_RELATIVE 'E'
 #define CMD_REF_ABSOLUTE 'F'
 
 #define CMD_HOMING 'G'
@@ -51,6 +51,9 @@
 #define CMD_AUX2_ENABLE 'P'
 #define CMD_AUX2_DISABLE 'Q'
 
+#define CMD_LINE_SEEK 'R'
+#define CMD_LINE_BURN 'S'
+#define CMD_LINE_RASTER 'T'
 
 #define PARAM_TARGET_X 'x'
 #define PARAM_TARGET_Y 'y' 
