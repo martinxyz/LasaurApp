@@ -56,8 +56,8 @@
 #define CMD_LINE_RASTER 'T'
 
 #define PARAM_TARGET_X 'x'
-#define PARAM_TARGET_Y 'y' 
-#define PARAM_TARGET_Z 'z' 
+#define PARAM_TARGET_Y 'y'
+#define PARAM_TARGET_Z 'z'
 #define PARAM_FEEDRATE 'f'
 #define PARAM_PULSE_FREQUENCY 'p'
 #define PARAM_PULSE_DURATION 'd'
@@ -123,7 +123,7 @@ void protocol_init();
 // Processes serial rx buffer and queues commands for stepper interrupt.
 void protocol_loop();
 
-// Called to make protocol_idle report 
+// Called to make protocol_idle report
 // (super)status the next time it runs.
 void protocol_request_status();
 void protocol_request_superstatus();
