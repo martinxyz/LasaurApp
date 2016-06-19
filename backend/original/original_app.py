@@ -16,13 +16,7 @@ from filereaders import read_svg, read_dxf, read_ngc
 APPNAME = "lasaurapp"
 VERSION = "16.05 (pulseraster branch)"
 COMPANY_NAME = "com.nortd.labs"
-SERIAL_PORT = None
-BITSPERSECOND = 57600
-NETWORK_PORT = 4444
-HARDWARE = 'x86'  # also: 'beaglebone', 'raspberrypi'
-CONFIG_FILE = "lasaurapp.conf"
 COOKIE_KEY = 'secret_key_jkn23489hsdf'
-FIRMWARE = "LasaurGrbl.hex"
 TOLERANCE = 0.08
 
 
@@ -79,7 +73,6 @@ def run_with_callback(host, port):
     print("Persistent storage root is: " + storage_dir())
     print("-----------------------------------------------------------------------------")
     print("Bottle server starting up ...")
-    print("Serial is set to %d bps" % BITSPERSECOND)
     print("Point your browser to: ")
     print("http://%s:%d/      (local)" % ('127.0.0.1', port))
     # if host == '':
@@ -427,10 +420,12 @@ def file_reader():
 
 
 ### Setup Argument Parser
-argparser = argparse.ArgumentParser(description='Run LasaurApp backend.', prog='lasaurapp')
+argparser = argparse.ArgumentParser(description='Run LasaurApp original backend.')
 argparser.add_argument('-v', '--version', action='version', version='%(prog)s ' + VERSION)
-argparser.add_argument('-p', '--public', dest='host_on_all_interfaces', action='store_true',
+argparser.add_argument('--public', dest='host_on_all_interfaces', action='store_true',
                     default=False, help='bind to all network devices (default: bind to 127.0.0.1)')
+argparser.add_argument('--network-port', type=int,
+                    default=4444, help='network port to listen on (default: 4444)')
 argparser.add_argument('-d', '--debug', dest='debug', action='store_true',
                     default=False, help='print more verbose for debugging')
 args = argparser.parse_args()
@@ -441,6 +436,6 @@ print("LasaurApp " + VERSION)
 
 if __name__ == '__main__':
     if args.host_on_all_interfaces:
-        run_with_callback('', NETWORK_PORT)
+        run_with_callback('', args.network_port)
     else:
-        run_with_callback('127.0.0.1', NETWORK_PORT)
+        run_with_callback('127.0.0.1', args.network_port)

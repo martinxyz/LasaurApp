@@ -10,7 +10,7 @@ import argparse
 import configparser
 
 import hardware_init
-import driveboard
+from gcode import DriveboardGcode
 import web
 
 class Application(tornado.web.Application):
@@ -34,7 +34,7 @@ class Application(tornado.web.Application):
             # cookie_secret="__TODO:_GENERATE_YOUR_OWN_RANDOM_VALUE_HERE__",  #TODO: check if we need this (besides auth); requires html changes
             xsrf_cookies=True,
             debug=conf['backend'].getboolean('debug', False),
-            # autoreload=False,
+            autoreload=False,  # avid multiple calls to start_old_backend()
         )
         super(Application, self).__init__(handlers, **settings)
 
@@ -46,13 +46,10 @@ def start_old_backend(conf):
         cmd.append('--public')
     if conf.getboolean('debug', False):
         cmd.append('--debug')
-    logging.info('starting original backend:', ' '.join(cmd))
+    cmd.extend(['--network-port', str(conf.getint('network_port', 4444))])
+    logging.info('starting original backend:' + ' '.join(cmd))
     p = subprocess.Popen(cmd)
-
-    def stop_old_backend():
-        logging.info('killing original backend')
-        p.terminate()
-    atexit.register(stop_old_backend)
+    atexit.register(p.terminate)
 
 
 def main():
@@ -68,15 +65,17 @@ def main():
     tornado.options.parse_command_line()
     io_loop = IOLoop.current()
 
-    board = driveboard.Driveboard(
+    board = DriveboardGcode(
         conf['driveboard']['serial_port'],
         conf['driveboard'].getint('baudrate'))
     board.connect()
     # self.board.serial_write_raw(b'aslfdkajsflaksjflask')
 
     app = Application(conf, board)
+
+    start_old_backend(conf['original'])
+
     public = conf.getboolean('backend', 'public')
-    start_old_backend(conf['backend'])
     port = conf.getint('backend', 'network_port')
     if public:
         addr = ''
@@ -86,7 +85,7 @@ def main():
     # app.listen(7777, addr)
 
     gcode_tcp = web.GcodeServer(board)
-    gcode_tcp.listen(7777, addr)
+    gcode_tcp.listen(7777, '127.0.0.1')
 
     io_loop.start()
 

@@ -113,7 +113,7 @@ class SerialManagerClass:
         return bool(self.ws)
 
     def get_hardware_status(self):
-        if self.is_queue_empty() and time.time() - self.last_poll > 0.1:
+        if time.time() - self.last_poll > 0.1:
             # trigger a status report
             # will update for the next status request
             self.queue_gcode('?')

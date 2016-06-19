@@ -27,6 +27,8 @@ class GcodeServer(tornado.tcpserver.TCPServer):
                 line = line.decode('utf-8', 'ignore').strip()
                 if line:
                     resp = self.board.gcode_line(line) + '\n'
+                    if resp.startswith('error:'):
+                        logging.warning(resp)
                     stream.write(resp.encode('utf-8'))
         except tornado.iostream.StreamClosedError:
             logging.info('closed "gcode over tcp" by client %r', address)
@@ -72,34 +74,13 @@ class WSHandler(tornado.websocket.WebSocketHandler):
                 self.on_gcode(line)
 
     def on_gcode(self, line):
-        if not self.board.is_connected:
-            return
-        line = line.split(';')[0].strip()  # gcode comment
-        if line == '?':  # status polling
-            st = self.board.status
-            # status report (per client)
-            # https://github.com/grbl/grbl/wiki/Interfacing-with-Grbl
-            # data = '<Idle,MPos:0.000,0.000,0.000,WPos:0.000,0.000,0.000>'
-            data = '<Idle,MPos:%.3f,%.3f,%.3f,WPos:0.000,0.000,0.000>' % \
-                   (st['INFO_POS_X'], st['INFO_POS_Y'], st['INFO_POS_Z'])
-            self.write_message({'P': 'Lasersaur', 'D': data})
-        else:
-            print('executing gcode: %r' % line)
-            self.board.gcode_line(line)
+        print('executing gcode: %r' % line)
+        resp = self.board.gcode_line(line)
+        if resp.startswith('error:'):
+            logging.warning(resp)
 
     def check_origin(self, origin):
         # TODO: this is bad; we don't really want javascript from
         # random websites to use our machine?
         # In addition, we also should require authentication.
         return True
-
-def main():
-    tornado.options.parse_command_line()
-    hardware_init.init(options.board)
-    io_loop = IOLoop.current()
-    app = Application()
-    app.listen(port=options.port, address=options.addr)
-    io_loop.start()
-
-if __name__ == "__main__":
-    main()
