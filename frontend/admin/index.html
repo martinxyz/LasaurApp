@@ -1,23 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <title>Lasersaur Backend</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="bootstrap.min.css">
-  <script src="jquery-2.2.4.min.js"></script>
-  <script src="bootstrap.min.js"></script>
-  <script src="angular.min.js"></script>
+  <title>Lasersaur Backend</title>
+
+  <script src="bower_components/angular/angular.min.js"></script>
+  <script src="bower_components/angular-bootstrap/ui-bootstrap.min.js"></script>
+  <link href="bower_components/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet"></style>
+  <script src="bower_components/angular-spinner/angular-spinner.min.js"></script>
+
+  <script src="bower_components/spin.js/spin.min.js"></script>
+  <script src="bower_components/angular-spinner/angular-spinner.min.js"></script>
+
+
   <script src="admin.js"></script>
   <style>
     .navbar {
       margin-bottom: 0;
       border-radius: 0;
-    }
-    footer {
-      background-color: #555;
-      color: white;
-      padding: 15px;
     }
   </style>
 </head>
@@ -34,7 +35,7 @@
   </div>
 </nav>
 
-<div class="container-fluid text-center" ng-app="LasaurAdmin" ng-controller="AdminController">
+<div class="container-fluid text-center" ng-app="LasaurAdmin" ng-controller="AdminController as vm">
   <div class="row content">
     <div class="col-sm-8 text-left">
       <h2>Apps</h2>
@@ -49,34 +50,39 @@
         Pulseraster
       </a>
 
+      <!--
       <h2>Lasersaur</h2>
       <table class="table table-bordered">
-        <tr><td>work area</td> <td> {{config.workspace[0]}}mm x {{config.workspace[1]}}mm</td></tr>
-        <tr><td>seekrate</td> <td> {{config.seekrate}} mm/s</td></tr>
+        <tr><td>work area</td> <td> {{vm.config.workspace[0]}}mm x {{vm.config.workspace[1]}}mm</td></tr>
+        <tr><td>seekrate</td> <td> {{vm.config.seekrate}} mm/s</td></tr>
       </table>
+      -->
 
       <h2>Firmware</h2>
       <table class="table table-bordered">
-        <tr><td>firmware version</td> <td>{{firmware_version}}</td></tr>
-        <tr><td>serial port</td> <td>{{config.serial_port}}</td></tr>
-        <tr><td>baudrate</td> <td>{{config.baudrate}}</td></tr>
+        <tr><td>firmware version</td> <td>{{vm.firmware_version}}</td></tr>
+        <tr><td>serial port</td> <td>{{vm.config.serial_port}}</td></tr>
+        <tr><td>baudrate</td> <td>{{vm.config.baudrate}}</td></tr>
       </table>
 
-      <div class="dropdown">
-        <button class="btn btn-danger dropdown-toggle" type="button" data-toggle="dropdown">
-          Change Firmware
-          <span class="caret"></span></button>
-        <ul class="dropdown-menu">
-          <li><a href="flash_firmware">Flash Current Release</a></li>
-          <li><a href="build_firmware">Build from Source and Flash</a></li>
-          <li><a href="reset_atmega">Reset Atmega (Restart Firmware)</a></li>
+      <span us-spinner="{radius:30, width:8, length:16}" spinner-on="vm.busy"></span>
+
+      <div class="btn-group" uib-dropdown>
+        <button id="change-firmware" type="button" class="btn btn-danger" uib-dropdown-toggle ng-disabled="vm.busy" ng-click="vm.message = ''">
+          Change Firmware <span class="caret"></span>
+        </button>
+        <ul class="dropdown-menu" uib-dropdown-menu>
+          <li><a href="#" ng-click="vm.buildAndFlash()">Build from Source and Flash</a></li>
+          <li><a href="#" ng-click="vm.flashRelease()">Flash Pre-Built Release</a></li>
+          <li class="divider"></li>
+          <li><a href="#" ng-click="vm.resetFirmware()">Reset Atmega (Restart Firmware)</a></li>
         </ul>
       </div>
+      {{vm.message}}
+
     </div>
   </div>
 </div>
-
-<footer class="container-fluid" />
 
 </body>
 </html>

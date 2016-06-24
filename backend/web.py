@@ -28,18 +28,34 @@ class GcodeServer(tornado.tcpserver.TCPServer):
                 if line:
                     resp = self.board.gcode_line(line) + '\n'
                     if resp.startswith('error:'):
-                        logging.warning(resp)
+                        logging.warning(resp[6:])
                     stream.write(resp.encode('utf-8'))
         except tornado.iostream.StreamClosedError:
             logging.info('closed "gcode over tcp" by client %r', address)
 
 class FirmwareHandler(tornado.web.RequestHandler):
-    def get(self):
-        print('got it fwhandler')
+    def initialize(self, board):
+        self.board = board
+    def post(self, action):
+        if action == 'flash':
+            print('TODO: flash')
+        else:
+            self.set_status(501, 'not implemented')
+            #self.send_error(501)
 
 class ConfigHandler(tornado.web.RequestHandler):
+    def initialize(self, board, conf):
+        self.board = board
+        self.conf = conf
     def get(self):
-        self.write(conf)
+        c = self.conf
+        res = dict(
+            baudrate=c.get('driveboard', 'baudrate'),
+            serial_port=c.get('driveboard', 'serial_port'),
+            original_port=c.get('original', 'network_port'),
+            nothing=c.get('driveboard', 'balsdkfj', fallback=None),
+            )
+        self.write(res)
 
 class GcodeHandler(tornado.web.RequestHandler):
     def initialize(self, board):
