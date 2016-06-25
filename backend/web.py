@@ -8,8 +8,10 @@ import tornado.tcpserver
 from tornado.ioloop import IOLoop
 from tornado import gen
 import os.path
-
 from tornado.options import define, options
+
+import build
+import flash
 
 
 class GcodeServer(tornado.tcpserver.TCPServer):
@@ -34,14 +36,29 @@ class GcodeServer(tornado.tcpserver.TCPServer):
             logging.info('closed "gcode over tcp" by client %r', address)
 
 class FirmwareHandler(tornado.web.RequestHandler):
-    def initialize(self, board):
+    def initialize(self, board, conf):
         self.board = board
+        self.conf = conf
     def post(self, action):
-        if action == 'flash':
-            print('TODO: flash')
+        if action == 'build':
+            try:
+                firmware_name = "LasaurGrbl_from_src"
+                build.build_firmware(firmware_name)
+            except build.BuildFailed as e:
+                self.write(str(e))
+                self.set_status(500, 'Build Failed')
+        elif action == 'flash' or action == 'flash_release':
+            if action == 'flash':
+                firmware_name = "LasaurGrbl_from_src"
+            elif action == 'flash_release':
+                firmware_name = "LasaurGrbl"
+            try:
+                flash.flash_upload(self.conf['driveboard'], firmware_name)
+            except flash.FlashFailed as e:
+                self.write(str(e))
+                self.set_status(500, 'Flash Failed')
         else:
             self.set_status(501, 'not implemented')
-            #self.send_error(501)
 
 class ConfigHandler(tornado.web.RequestHandler):
     def initialize(self, board, conf):

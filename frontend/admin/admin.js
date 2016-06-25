@@ -9,10 +9,14 @@ app.controller('AdminController', function ($scope, $http, $log) {
     vm.busy = false;
     vm.message = '';
 
-    vm.flashFirmware = function(version) {
+    vm.flashFirmware = function(use_prebuilt_release) {
+        var url = '/firmware/flash';
+        if (use_prebuilt_release) {
+            url += '_release';
+        }
         vm.busy = true;
-        vm.message = 'Flashing...';
-        return $http.post('/firmware/flash', {'version': version}).then(
+        vm.message = 'Flashing... (takes about 10 seconds)';
+        return $http.post(url).then(
             function success(resp) {
                 vm.busy = false;
                 vm.message = 'Success!';
@@ -22,22 +26,25 @@ app.controller('AdminController', function ($scope, $http, $log) {
             }
         );
     };
+
     vm.flashRelease = function() {
-        vm.flashFirmware('release');
+        vm.flashFirmware(true);
     }
+
     vm.buildAndFlash = function() {
         vm.busy = true;
         vm.message = 'Building firmware...';
         return $http.post('/firmware/build').then(
             function success(resp) {
-                vm.flashFirmware('built');
+                vm.flashFirmware(false);
             }, function error(resp) {
                 vm.busy = false;
                 vm.message = 'build failed: ' + resp.statusText + ' ' + resp.data;
             }
         );
     };
-    vm.resetFirmware = function(version) {
+
+    vm.resetFirmware = function() {
         vm.busy = true;
         vm.message = 'Reset...';
         return $http.post('/firmware/reset').then(

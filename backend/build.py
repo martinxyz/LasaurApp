@@ -40,9 +40,15 @@ elif sys.platform == "linux" or sys.platform == "linux2":  #Linux
 # =============================================================================
 # No need to edit anything below this line
 
+class BuildFailed(Exception):
+    pass
+
 def run(s):
     print(s)
-    subprocess.check_call(s, shell=True)
+    status, output = subprocess.getstatusoutput(s)
+    print(output)
+    if status != 0:
+        raise BuildFailed(s + '\n' + output)
 
 
 def build_firmware(firmware_name="LasaurGrbl"):
@@ -109,5 +115,8 @@ def build_firmware(firmware_name="LasaurGrbl"):
 
 
 if __name__ == '__main__':
-    build_firmware()
+    try:
+        build_firmware()
+    except BuildFailed:
+        sys.exit(1)
 

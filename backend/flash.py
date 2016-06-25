@@ -10,12 +10,18 @@ import os, sys, time, subprocess
 thislocation = os.path.dirname(os.path.realpath(__file__))
 resources_dir = os.path.abspath(os.path.join(thislocation, '..'))
 
+class FlashFailed(Exception):
+    pass
+
 def run(s):
     print(s)
-    subprocess.check_call(s, shell=True)
+    status, output = subprocess.getstatusoutput(s)
+    print(output)
+    if status != 0:
+        raise FlashFailed(s + '\n' + output)
 
-def flash_upload(conf):
-    FIRMWARE = os.path.join(resources_dir, "firmware", 'LasaurGrbl.hex')
+def flash_upload(conf, firmware_name='LasaurGrbl'):
+    FIRMWARE = os.path.join(resources_dir, "firmware", firmware_name + '.hex')
 
     # honor src/config.user.h if exists
     if os.path.exists(os.path.join(resources_dir, "firmware", 'src', 'config.user.h')):
@@ -199,4 +205,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     conf = configparser.ConfigParser()
     conf.read(args.configfile)
-    flash_upload(conf['driveboard'])
+    try:
+        flash_upload(conf['driveboard'])
+    except FlashFailed:
+        sys.exit(1)

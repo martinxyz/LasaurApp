@@ -19,7 +19,7 @@ class Application(tornado.web.Application):
             (r"/ws", web.WSHandler, dict(board=board)),
             (r"/gcode", web.GcodeHandler, dict(board=board)),
             # (r"/status", web.StatusHandler, dict(board=board)),
-            (r"/firmware/(build|flash|reset)", web.FirmwareHandler, dict(board=board)),
+            (r"/firmware/(build|flash|flash_release|reset)", web.FirmwareHandler, dict(board=board, conf=conf)),
             (r"/config", web.ConfigHandler, dict(board=board, conf=conf)),
             (r"/raster/(.*)", tornado.web.StaticFileHandler, {
                 "path": "../frontend/raster",
