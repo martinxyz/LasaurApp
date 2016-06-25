@@ -21,6 +21,7 @@
 
 
 // commands, handled in serial.c
+#define CMD_RESET_PROTOCOL '\x00'
 #define CMD_STOP '\x01'
 #define CMD_RESUME '\x02'
 #define CMD_STATUS '\x03'

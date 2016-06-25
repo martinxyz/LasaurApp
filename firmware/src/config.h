@@ -23,7 +23,7 @@
 #include <inttypes.h>
 #include <stdbool.h>
 
-#define VERSION 1500             // int or float
+#define VERSION 1600             // int or float
 #define BAUD_RATE 57600
 // #define DEBUG_IGNORE_SENSORS  // set for debugging
 // #define NOT_GEARED
@@ -74,7 +74,7 @@
 #define AUX1_ASSIST_BIT         7           // Arduino: 7
 #define AUX2_ASSIST_BIT         5           // Arduino: 5
 // laser pwm                    6           // Ardunio: 6
-  
+
 #define LIMIT_DDR               DDRC
 #define LIMIT_PORT              PORTC
 #define LIMIT_PIN               PINC

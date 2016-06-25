@@ -177,6 +177,12 @@ ISR(USART_RX_vect) {
     // we did not read UDR0 fast enough
     stepper_request_stop(STOPERROR_USART_DATA_OVERRUN);
   }
+  // for recovery after transmission errors or serial disconnect
+  if (data == CMD_RESET_PROTOCOL) {
+    rx_buffer_processed = 0;
+    first_transmission = true;
+    return;
+  }
   // transmission error check
   if (first_transmission) {  // ignore data
     first_transmission = false;
