@@ -74,14 +74,18 @@
       <table class="table table-bordered">
         <tr><td>
             status report
-            <span class="label label-danger" ng-show="vm.status.REPORT != 'ok'">warning</span>
           </td>
           <td>
-            <!-- <span class="label label-success" ng-show="vm.status.REPORT == 'ok'">ok</span> -->
             <!-- <span class="label label-danger" ng-show="vm.status.REPORT != 'ok'">error</span> -->
-            {{vm.status.REPORT}}
+            <span class="label label-success" ng-show="vm.status.REPORT == 'ok'">ok</span>
+            <span class="label label-danger" ng-show="vm.status.REPORT != 'ok'">warning</span>
+            <span ng-show="vm.status.REPORT != 'ok'">{{vm.status.REPORT}}</span>
           </td>
         </tr>
+        <tr><td>idle</td> <td>
+            <span class="label label-success" ng-show="vm.status.INFO_IDLE_YES">yes</span>
+            <span class="label label-warning" ng-show="!vm.status.INFO_IDLE_YES">busy</span>
+        </td></tr>
         <tr><td>firmware version</td> <td>{{vm.status.FIRMWARE_VERSION}}</td></tr>
         <tr><td>position</td> <td>{{vm.status.INFO_POS_X | number:1}}, {{vm.status.INFO_POS_Y|number:1}}</td></tr>
       </table>

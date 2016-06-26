@@ -307,7 +307,7 @@ class Driveboard:
         if self.read_hist.startswith(b'# LasaurGrbl '):
             self.disconnect('Old LasaurGrbl firmware detected. Please flash the new one.')
         elif self.last_status_report < time.time() - 0.5:
-            self.disconnect('No firmware startup greeting and no response to status request. Bytes received: %r' % self.read_hist)
+            self.disconnect('No firmware startup greeting and no response to status request. (Wrong firmware?) Bytes received: %r' % self.read_hist)
         else:
             logging.info('Got no startup greeting, but firmware is responding to status requests.')
             if self.firmware_version:
