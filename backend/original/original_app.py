@@ -58,7 +58,7 @@ def run_with_callback(host, port):
     """ Start a server instance with control over the main loop.
         This is a function that I derived from the bottle.py run()
     """
-    #SerialManager.connect()
+    SerialManager.connect()
     handler = default_app()
     if args.debug:
         debug(True)
@@ -287,21 +287,21 @@ def download(filename, dlname):
 def serial_handler(connect):
     print('connect', connect)
     if connect == '1':
-        # print 'js is asking to connect serial'
+        print('js is asking to connect serial')
         if not SerialManager.is_connected():
             SerialManager.connect()
             ret = 'Connecting to serial backend...<br>'
             print(ret)
             return ret
-            #print "Failed to connect to serial."
+            print("Failed to connect to serial.")
             #return ""
     elif connect == '0':
-        # print 'js is asking to close serial'
+        print('js is asking to close serial')
         if SerialManager.is_connected():
             if SerialManager.close(): return "1"
             else: return ""
     elif connect == "2":
-        # print 'js is asking if serial connected'
+        print('js is asking if serial connected')
         if SerialManager.is_connected(): return "1"
         else: return ""
     else:

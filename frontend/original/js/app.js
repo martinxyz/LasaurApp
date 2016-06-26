@@ -250,35 +250,26 @@ $(document).ready(function(){
       if (data.serial_connected) {
         if (data.door_open) {
           $('#door_status_btn').removeClass('btn-success')
-          $('#door_status_btn').addClass('btn-warning') 
+          $('#door_status_btn').addClass('btn-warning')
           // $().uxmessage('warning', "Door is open!");
         } else {
           $('#door_status_btn').removeClass('btn-warning')
-          $('#door_status_btn').addClass('btn-success')         
+          $('#door_status_btn').addClass('btn-success')
         }
         if (data.chiller_off) {
           $('#chiller_status_btn').removeClass('btn-success')
-          $('#chiller_status_btn').addClass('btn-warning')           
-          // $().uxmessage('warning', "Chiller is off!"); 
+          $('#chiller_status_btn').addClass('btn-warning')
+          // $().uxmessage('warning', "Chiller is off!");
         } else {
           $('#chiller_status_btn').removeClass('btn-warning')
           $('#chiller_status_btn').addClass('btn-success')
         }
         if (data.power_off) {
-          $().uxmessage('error', "Power is off!"); 
-          $().uxmessage('notice', "Turn on Lasersaur power then run homing cycle to reset.");          
+          $().uxmessage('error', "Power is off!");
+          $().uxmessage('notice', "Turn on Lasersaur power then run homing cycle to reset.");
         }
-        if (data.limit_hit) {
-          $().uxmessage('error', "Limit hit!");
-          $().uxmessage('notice', "Run homing cycle to reset stop mode.");
-        }
-        if (data.buffer_overflow) {
-          $().uxmessage('error', "Rx Buffer Overflow!");
-          $().uxmessage('notice', "Please report this to the author of this software.");
-        }        
-        if (data.transmission_error) {
-          $().uxmessage('error', "Transmission Error!");
-          $().uxmessage('notice', "If this happens a lot tell the author of this software.");
+        if (data.error) {
+          $().uxmessage('error', data.error);
         }
         if (data.x && data.y) {
           // only update if not manually entering at the same time
