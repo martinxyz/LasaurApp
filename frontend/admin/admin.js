@@ -1,13 +1,31 @@
 'use strict';
 
-var app = angular.module("LasaurAdmin", ['ui.bootstrap', 'angularSpinner'])
-app.controller('AdminController', function ($scope, $http, $log) {
+var app = angular.module("LasaurAdmin", ['ui.bootstrap', 'angularSpinner', 'angular-websocket'])
+app.controller('AdminController', function ($scope, $http, $websocket, $log, $interval) {
     var vm = this;
 
     vm.firmware_version = 'not asked yet';
     vm.config = {};
     vm.busy = false;
     vm.message = '';
+
+    vm.status = {};
+    vm.showStatusDetails = false;
+    vm.haveStatusUpdates = true;
+    vm.lastStatusMessageReceived = true;
+
+    var statusStream = $websocket('ws://' + window.location.host + '/status/ws');
+    statusStream.onMessage(function(message) {
+        vm.status = JSON.parse(message.data);
+        vm.lastStatusMessageReceived = true;
+        vm.haveStatusUpdates = true;
+    });
+    $interval(function watchStatusUpdates() {
+        if (!vm.lastStatusMessageReceived) {
+            vm.haveStatusUpdates = false;
+        }
+        vm.lastStatusMessageReceived = false;
+    }, 500);
 
     vm.flashFirmware = function(use_prebuilt_release) {
         var url = '/firmware/flash';
@@ -64,4 +82,4 @@ app.controller('AdminController', function ($scope, $http, $log) {
         //$scope.work_area_height = config.workspace[1];
         vm.config = config;
     });
-})
+});

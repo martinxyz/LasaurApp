@@ -18,7 +18,8 @@ class Application(tornado.web.Application):
         handlers = [
             (r"/ws", web.WSHandler, dict(board=board)),
             (r"/gcode", web.GcodeHandler, dict(board=board)),
-            # (r"/status", web.StatusHandler, dict(board=board)),
+            (r"/status", web.StatusHandler, dict(board=board)),
+            (r"/status/ws", web.StatusWebsocket, dict(board=board)),
             (r"/firmware/(build|flash|flash_release|reset)", web.FirmwareHandler, dict(board=board, conf=conf)),
             (r"/config", web.ConfigHandler, dict(board=board, conf=conf)),
             (r"/raster/(.*)", tornado.web.StaticFileHandler, {
@@ -84,7 +85,7 @@ def main():
     app.listen(port, addr)
     # app.listen(7777, addr)
 
-    gcode_tcp = web.GcodeServer(board)
+    gcode_tcp = web.GcodeTCPServer(board)
     gcode_tcp.listen(7777, '127.0.0.1')
 
     io_loop.start()

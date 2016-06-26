@@ -5,7 +5,7 @@ import tornado.web
 import tornado.websocket
 import tornado.tcpserver
 #from tornado.escape import json_encode, json_decode
-from tornado.ioloop import IOLoop
+from tornado.ioloop import IOLoop, PeriodicCallback
 from tornado import gen
 import os.path
 from tornado.options import define, options
@@ -14,10 +14,12 @@ import build
 import flash
 
 
-class GcodeServer(tornado.tcpserver.TCPServer):
+class GcodeTCPServer(tornado.tcpserver.TCPServer):
+    """TCP server with a line oriented gcode protocol
+    """
     def __init__(self, board, **args):
         self.board = board
-        super(GcodeServer, self).__init__(**args)
+        super(GcodeTCPServer, self).__init__(**args)
 
     @gen.coroutine
     def handle_stream(self, stream, address):
@@ -36,6 +38,8 @@ class GcodeServer(tornado.tcpserver.TCPServer):
             logging.info('closed "gcode over tcp" by client %r', address)
 
 class FirmwareHandler(tornado.web.RequestHandler):
+    """HTTP Build and flash API
+    """
     def initialize(self, board, conf):
         self.board = board
         self.conf = conf
@@ -53,12 +57,53 @@ class FirmwareHandler(tornado.web.RequestHandler):
             elif action == 'flash_release':
                 firmware_name = "LasaurGrbl"
             try:
+                self.board.disconnect('flashing new firmware')
                 flash.flash_upload(self.conf['driveboard'], firmware_name)
+                self.board.connect()
             except flash.FlashFailed as e:
                 self.write(str(e))
                 self.set_status(500, 'Flash Failed')
         else:
             self.set_status(501, 'not implemented')
+
+class StatusHandler(tornado.web.RequestHandler):
+    """HTTP status requests
+    """
+    def initialize(self, board):
+        self.board = board
+
+    def get(self):
+        self.write(self.board.get_status())
+
+class StatusWebsocket(tornado.websocket.WebSocketHandler):
+    """Websocket for status updates (to avoid HTTP GET polling)
+    """
+    clients = set()
+    started = False
+
+    def initialize(self, board):
+        if not StatusWebsocket.started:
+            def status_timer_cb():
+                status = board.get_status()
+                for client in StatusWebsocket.clients:
+                    client.new_status(status)
+            polling_interval = 200  # milliseconds
+            PeriodicCallback(status_timer_cb, polling_interval).start()
+            StatusWebsocket.started = True
+
+    def open(self):
+        StatusWebsocket.clients.add(self)
+
+    def on_close(self):
+        StatusWebsocket.clients.remove(self)
+
+    def new_status(self, status):
+        # we always send it (even if not changed) to allow the client
+        # to detect the lack of messages with a simple timeout
+        self.write_message(status)
+
+    def check_origin(self, origin):
+        return True  # anyone may listen to status changes
 
 class ConfigHandler(tornado.web.RequestHandler):
     def initialize(self, board, conf):
@@ -110,7 +155,7 @@ class WSHandler(tornado.websocket.WebSocketHandler):
         print('executing gcode: %r' % line)
         resp = self.board.gcode_line(line)
         if resp.startswith('error:'):
-            logging.warning(resp)
+            logging.warning(resp[6:])
 
     def check_origin(self, origin):
         # TODO: this is bad; we don't really want javascript from

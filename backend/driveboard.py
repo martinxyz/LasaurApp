@@ -62,6 +62,9 @@ class Driveboard:
         self.firmbuf_used = 0
         self.firmbuf_queue = bytearray()
 
+        self.disconnect_reason = None
+        self.firmware_version = None
+
         # always request status (while connected) every 100ms
         self.last_status_request = 0.0
         self.last_status_report = 0.0
@@ -69,6 +72,16 @@ class Driveboard:
         self.next_status = {}
         polling_interval = 100  # milliseconds
         PeriodicCallback(self._status_timer_cb, polling_interval).start()
+
+    def reset_protocol(self):
+        self.serial_write_queue.clear()
+        self.read_hist.clear()
+        self.firmbuf_queue.clear()
+        self.firmbuf_used = 0
+        self.pdata = []
+        self.firmware_version = None
+        self.send_command('CMD_RESET_PROTOCOL')
+        self.send_command('CMD_SUPERSTATUS')
 
     def connect(self):
         if self.device is not None:
@@ -82,25 +95,37 @@ class Driveboard:
             self.protocol_errors = 0
             self.io_loop.add_handler(self.device, self._serial_event, IOLoop.READ)
         except serial.SerialException as e:
+            self.disconnect_reason = str(e)
             logging.error(e)
             self.device = None
             return str(e)
 
+        self.reset_protocol()
         self.greeting_timeout = self.io_loop.call_later(2.0, self._on_greeting_timeout)
+        self.disconnect_reason = None
         return ''
 
-    def disconnect(self):
+    def disconnect(self, reason):
+        logging.error(reason)
+        self.disconnect_reason = reason
+        if self.device is None:
+            return
         logging.info('disconnecting from serial port %r', self.serial_port)
         self.io_loop.remove_handler(self.device)
         self.device.close()
         self.device = None
-        self.serial_write_queue.clear()
 
     def is_connected(self):
         return bool(self.device)
 
+    def get_disconnect_reason(self):
+        return self.disconnect_reason or 'disconnected'
+
     def get_status(self):
         status = self.status.copy()
+        status['CONNECTED'] = self.is_connected()
+        status['FIRMWARE_VERSION'] = self.firmware_version
+
         status['QUEUE_FIRMBUF'] = self.firmbuf_used
         # We don't know the exact state of the firmware buffer because
         # we receive a confirmation only every TX_CHUNK_SIZE bytes. But
@@ -109,6 +134,22 @@ class Driveboard:
         percent = 100.0 * float(used_for_sure) / (FIRMBUF_SIZE - TX_CHUNK_SIZE)
         status['QUEUE_FIRMBUF_PERCENT'] = percent
         status['QUEUE_BACKEND'] = len(self.firmbuf_queue) + len(self.serial_write_queue)
+
+        report = 'ok'
+        if not self.device:
+            report = 'disconnected from serial port'
+            if self.disconnect_reason:
+                report += ' - ' + self.disconnect_reason
+        elif self.last_status_report < time.time() - 0.5:
+            report = 'last status report from firmware is too old'
+        elif not self.status.get('STOPERROR_OK'):
+            stop_errors = []
+            for k in status:
+                if k.startswith('STOPERROR'):
+                    stop_errors.append(k)
+            report = 'stopped - ' + ' '.join(stop_errors)
+        status['REPORT'] = report
+
         return status
 
     def _serial_event(self, fd, events):
@@ -116,15 +157,14 @@ class Driveboard:
             try:
                 self._serial_read()
             except serial.SerialException:
-                self.disconnect()
-                logging.error('Error while reading - disconnecting. Exception follows:')
+                self.disconnect('could not read from serial port')
                 raise
         if events & IOLoop.WRITE:
             self._serial_write()
 
     def _serial_write(self, data=b''):
         if not self.device:
-            logging.error('write ignored (device not open): %r', data)
+            logging.warning('write ignored (device closed)')
             return
         queue = self.serial_write_queue
         for b in data:
@@ -160,17 +200,18 @@ class Driveboard:
                     #logging.debug('chunk processed, firmbuf_used %d/%d', self.firmbuf_used, FIRMBUF_SIZE)
                     self._send_fwbuf(b'')
                     if self.firmbuf_used < 0:
-                        #logging.debug('firmware buffer tracking too low (%d), trying to recover', self.firmbuf_used)
-                        self.firmbuf_used += 1  # slow (but safe) recovery
+                        logging.error('firmware buffer tracking too low (%d)', self.firmbuf_used)
                 elif byte == STATUS_END:
                     self.last_status_report = time.time()
-                    for key in sorted(set(self.status).union(set(self.next_status))):
-                        value1 = self.status.get(key)
-                        value2 = self.next_status.get(key)
-                        if value1 != value2:
-                            logging.info('Status change: %s %r', key, value2)
+                    #for key in sorted(set(self.status).union(set(self.next_status))):
+                    #    value1 = self.status.get(key)
+                    #    value2 = self.next_status.get(key)
+                    #    if value1 != value2:
+                    #        logging.info('Status change: %s %r', key, value2)
                     self.status = self.next_status
                     self.next_status = {}
+                    if 'INFO_VERSION' in self.status:
+                        self.firmware_version = self.status['INFO_VERSION'] / 100.0
                 else:
                     logging.warning('unhandled rx %r %s', bytes([byte]), name)
             elif 31 < byte < 65:  # stop error markers
@@ -210,6 +251,11 @@ class Driveboard:
         cmd = name_to_marker[cmd]
         if cmd < 32:
             # controls chars, handled directly in the serial ISR (not buffered)
+            if cmd == CMD_RESUME:
+                if self.status.get('STOPERROR_RX_BUFFER_OVERFLOW') or \
+                  self.status.get('STOPERROR_TRANSMISSION_ERROR'):
+                  # need to fix the buffer tracking first
+                  self.reset_protocol()
             self._serial_write(bytes([cmd]))
         else:
             self._send_fwbuf(bytes([cmd]))
@@ -231,14 +277,11 @@ class Driveboard:
     def _send_fwbuf(self, data=b''):
         self.firmbuf_queue += data
         available = FIRMBUF_SIZE - self.firmbuf_used
-        # FIXME: why have I written the second one first? First one looks correct.
-        #        verify that eve
+
         if available > 0 and self.firmbuf_queue:
-        #if available > TX_CHUNK_SIZE and self.firmbuf_queue:
             out = self.firmbuf_queue[:available]
             del self.firmbuf_queue[:available]
             self.firmbuf_used += len(out)
-            #logging.debug('firmbuf_used %d/%d', self.firmbuf_used, FIRMBUF_SIZE)
             self._serial_write(out)
 
     def _status_timer_cb(self):
@@ -252,36 +295,22 @@ class Driveboard:
                 self.io_loop.remove_timeout(self.greeting_timeout)
                 self.greeting_timeout = None
                 logging.info('got firmware startup greeting')
+                if self.firmbuf_used != 0:
+                    self.disconnect('Startup error, firmbuf_used should remain empty during startup!')
             else:
-                logging.error('got firmware startup greeting; unexpected firmware reset! Disconnecting.')
-                self.disconnect()
-            self.firmbuf_used = 0
+                self.disconnect('Got firmware startup greeting. Unexpected firmware reset!')
         else:
-            logging.warning('invalid firmware startup greeting: %r', repr(value))
+            self.disconnect('Got invalid firmware startup greeting: %r' % repr(value))
 
     def _on_greeting_timeout(self):
-        logging.error('No firmware greeting!')
-        logging.error('Last 80 bytes from firmware: %r', self.read_hist)
-
+        self.greeting_timeout = None
         if self.read_hist.startswith(b'# LasaurGrbl '):
-            logging.error('This is the old lasersaur firmware. Please flash the new one.')
-            self.disconnect()
+            self.disconnect('Old LasaurGrbl firmware detected. Please flash the new one.')
         elif self.last_status_report < time.time() - 0.5:
-            logging.error('Also, there was no response to our status requests.')
-            self.disconnect()
+            self.disconnect('No firmware startup greeting and no response to status request. Bytes received: %r' % self.read_hist)
         else:
-            logging.error('Firmware is responding to status requests.')
-            logging.error('Not sure if the firmware is in a clean state. Buffer tracking may need recovery.')
-
-    # TODO:
-    #### sending super commands (handled in serial rx interrupt)
-    #if self.request_stop:
-    #    self._send_char(CMD_STOP)
-    #    self.request_stop = False
-    #
-    #if self.request_resume:
-    #    self._send_char(CMD_RESUME)
-    #    self.request_resume = False
-    #    self.reset_status()
-    #    self.request_status = 2  # super request
-
+            logging.info('Got no startup greeting, but firmware is responding to status requests.')
+            if self.firmware_version:
+                logging.info('Firmware version: %s', self.firmware_version)
+            else:
+                self.disconnect('Firmware did not report its version! Incompatible firmware?')
