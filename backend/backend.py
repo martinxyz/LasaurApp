@@ -35,7 +35,8 @@ class Application(tornado.web.Application):
             # cookie_secret="__TODO:_GENERATE_YOUR_OWN_RANDOM_VALUE_HERE__",  #TODO: check if we need this (besides auth); requires html changes
             xsrf_cookies=False,  # TODO: should be true, make template, etc.
             debug=conf['backend'].getboolean('debug', False),
-            autoreload=False,  # avid multiple calls to start_old_backend()
+            serve_traceback=True,  # always serve tracebacks
+            autoreload=False,  # avoid multiple calls to start_old_backend()
         )
         super(Application, self).__init__(handlers, **settings)
 

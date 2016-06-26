@@ -63,6 +63,14 @@ class FirmwareHandler(tornado.web.RequestHandler):
             except flash.FlashFailed as e:
                 self.write(str(e))
                 self.set_status(500, 'Flash Failed')
+        elif action == 'reset':
+            try:
+                self.board.disconnect('reset requested')
+                flash.reset_atmega(self.conf['driveboard'])
+                self.board.connect()
+            except flash.FlashFailed as e:
+                self.write(str(e))
+                self.set_status(500, 'Reset Failed')
         else:
             self.set_status(501, 'not implemented')
 

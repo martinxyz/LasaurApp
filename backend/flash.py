@@ -185,7 +185,7 @@ def reset_atmega(conf):
         time.sleep(0.2)
         GPIO.output(pinReset, GPIO.HIGH)
     else:
-        print("ERROR: forced reset only possible on beaglebone and raspberrypi")
+        raise NotImplementedError("forced reset only possible on beaglebone and raspberrypi")
 
 
 def usb_reset_hack(conf):
