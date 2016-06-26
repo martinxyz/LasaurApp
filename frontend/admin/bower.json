@@ -1,0 +1,11 @@
+{
+  "name": "lasaurapp",
+  "private": true,
+  "dependencies": {
+    "angular": "^1.5.7",
+    "angular-bootstrap": "^1.3.3",
+    "bootstrap": "^3.3.6",
+    "angular-spinner": "^0.8.1",
+    "angular-websocket": "^2.0.0"
+  }
+}
