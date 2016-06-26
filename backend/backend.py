@@ -4,6 +4,7 @@ import tornado.options
 import tornado.web
 from tornado.ioloop import IOLoop
 import os.path
+import sys
 import subprocess
 import atexit
 import argparse
@@ -92,4 +93,11 @@ def main():
     io_loop.start()
 
 if __name__ == "__main__":
+    if not os.path.exists('../frontend/admin'):
+        print('Directory ../frontend/admin does not exist! Running from the wrong directory?')
+        sys.exit(1)
+    elif not os.path.exists('../frontend/admin/bower_components'):
+        print('You need to download the frontent dependencies!')
+        print('Please run "bower install" in the ../frontend/admin/ directory.')
+        sys.exit(1)
     main()
