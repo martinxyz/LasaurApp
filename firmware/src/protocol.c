@@ -418,7 +418,10 @@ void protocol_idle() {
 
     // Handle STOPERROR conditions
     uint8_t stop_code = stepper_stop_status();
-    serial_write(stop_code);
+    if (stop_code != STOPERROR_OK) {
+      // report a stop error
+      serial_write(stop_code);
+    }
 
 #ifndef DEBUG_IGNORE_SENSORS
     // always report limits
