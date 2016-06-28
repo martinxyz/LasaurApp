@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import ast
+from collections import OrderedDict
 import struct
 import serial
 import logging
@@ -63,15 +64,18 @@ class Driveboard:
         self.firmbuf_queue = bytearray()
 
         self.disconnect_reason = None
-        self.firmware_version = None
+        self.firmver = None
 
         # always request status (while connected) every 100ms
         self.last_status_request = 0.0
         self.last_status_report = 0.0
-        self.status = {}
-        self.next_status = {}
+        self.status_raw = OrderedDict()  # preserve knowledge which STOPERROR_* was first
         polling_interval = 100  # milliseconds
         PeriodicCallback(self._status_timer_cb, polling_interval).start()
+
+        # initialize self.status
+        self._update_status({})
+
 
     def reset_protocol(self):
         self.serial_write_queue.clear()
@@ -79,7 +83,7 @@ class Driveboard:
         self.firmbuf_queue.clear()
         self.firmbuf_used = 0
         self.pdata = []
-        self.firmware_version = None
+        self.firmver = None
         self.send_command('CMD_RESET_PROTOCOL')
         self.send_command('CMD_SUPERSTATUS')
 
@@ -122,35 +126,12 @@ class Driveboard:
         return self.disconnect_reason or 'disconnected'
 
     def get_status(self):
-        status = self.status.copy()
-        status['CONNECTED'] = self.is_connected()
-        status['FIRMWARE_VERSION'] = self.firmware_version
+        if self.last_status_report < time.time() - 0.5:
+            # no firmware status updates (e.g. disconnected)
+            # update local status without firmware information
+            self._update_status({})
 
-        status['QUEUE_FIRMBUF'] = self.firmbuf_used
-        # We don't know the exact state of the firmware buffer because
-        # we receive a confirmation only every TX_CHUNK_SIZE bytes. But
-        # for GUI purpose a "percent" display should show zero when idle.
-        used_for_sure = max(0, self.firmbuf_used - TX_CHUNK_SIZE)
-        percent = 100.0 * float(used_for_sure) / (FIRMBUF_SIZE - TX_CHUNK_SIZE)
-        status['QUEUE_FIRMBUF_PERCENT'] = percent
-        status['QUEUE_BACKEND'] = len(self.firmbuf_queue) + len(self.serial_write_queue)
-
-        report = 'ok'
-        if not self.device:
-            report = 'disconnected from serial port'
-            if self.disconnect_reason:
-                report += ' - ' + self.disconnect_reason
-        elif self.last_status_report < time.time() - 0.5:
-            report = 'last status report from firmware is too old'
-        elif not self.status.get('STOPERROR_OK'):
-            stop_errors = []
-            for k in status:
-                if k.startswith('STOPERROR'):
-                    stop_errors.append(k)
-            report = 'stopped - ' + ' '.join(stop_errors)
-        status['REPORT'] = report
-
-        return status
+        return self.status
 
     def _serial_event(self, fd, events):
         if events & IOLoop.READ:
@@ -202,22 +183,11 @@ class Driveboard:
                     if self.firmbuf_used < 0:
                         logging.error('firmware buffer tracking too low (%d)', self.firmbuf_used)
                 elif byte == STATUS_END:
-                    self.last_status_report = time.time()
-                    #for key in sorted(set(self.status).union(set(self.next_status))):
-                    #    value1 = self.status.get(key)
-                    #    value2 = self.next_status.get(key)
-                    #    if value1 != value2:
-                    #        logging.info('Status change: %s %r', key, value2)
-                    self.status = self.next_status
-                    self.next_status = {}
-                    if 'INFO_VERSION' in self.status:
-                        self.firmware_version = self.status['INFO_VERSION'] / 100.0
+                    self._on_status_end()
                 else:
                     logging.warning('unhandled rx %r %s', bytes([byte]), name)
-            elif 31 < byte < 65:  # stop error markers
-                self.next_status[name] = True
-            elif 64 < byte < 91:  # info flags
-                self.next_status[name] = True
+            elif 31 < byte < 91:  # stop error markers, info flags
+                self.status_raw[byte] = True
             elif 96 < byte < 123:  # parameter
                 if len(self.pdata) == 4:
                     value = (( (self.pdata[3]-128)*2097152
@@ -225,10 +195,7 @@ class Driveboard:
                              + (self.pdata[1]-128)*128
                              + (self.pdata[0]-128))- 134217728)/1000.0
                     self.pdata = []
-                    if name == 'INFO_STARTUP_GREETING':
-                        self._on_startup_greeting(value)
-                    else:
-                        self.next_status[name] = value
+                    self._on_parameter(byte, value)
                 else:
                     logging.error('not enough parameter data %s %d', name, len(self.pdata))
                     print_hist = True
@@ -246,6 +213,90 @@ class Driveboard:
         if print_hist:
             hist = self.read_hist.decode('unicode-escape')
             logging.error('Last 80 bytes from firmware: %r', hist)
+
+    def _on_parameter(self, byte, value):
+        if byte == INFO_STARTUP_GREETING:
+            self._on_startup_greeting(value)
+        elif byte == INFO_VERSION:
+            # superstatus, only received once
+            self.firmver = value / 100.0
+        else:
+            self.status_raw[byte] = value
+
+    def _on_status_end(self):
+        self._update_status(self.status_raw)
+        self.status_raw.clear()
+
+    def _update_status(self, status_raw):
+        # TODO: also run this if no status arrives?
+        self.last_status_report = time.time()
+
+        # We don't know the exact state of the firmware buffer because
+        # we receive a confirmation only every TX_CHUNK_SIZE bytes. But
+        # for GUI purpose a "percent" display should show zero when idle.
+        firmbuf_used_for_sure = max(0, self.firmbuf_used - TX_CHUNK_SIZE)
+        firmbuf_percent = 100.0 * float(firmbuf_used_for_sure) / (FIRMBUF_SIZE - TX_CHUNK_SIZE)
+
+        r = status_raw
+        self.status = {
+            # 'appver':conf['version'],
+            'firmver': self.firmver,
+            'ready': r.pop(INFO_IDLE_YES, False) and not self.firmbuf_queue,
+            #'paused': False, TODO   self._status['paused'] = self._paused
+            'serial': bool(self.device),
+            # 'progress': TODO, # if self.job_size == 0: self._status['progress'] = 1.0 else: self._status['progress'] = round(SerialLoop.tx_pos/float(SerialLoop.job_size),3)
+            'queue': {
+                'firmbuf': self.firmbuf_used,
+                'firmbuf_percent': firmbuf_percent,
+                'backend': len(self.firmbuf_queue) + len(self.serial_write_queue)
+                },
+            'pos': [
+                r.pop(INFO_POS_X, 0.0),
+                r.pop(INFO_POS_Y, 0.0),
+                r.pop(INFO_POS_Z, 0.0)
+                ],
+            'underruns': r.pop(INFO_BUFFER_UNDERRUN, 0.0),
+            'stackclear': r.pop(INFO_STACK_CLEARANCE, 999999.0),
+            'delayed_microsteps': r.pop(INFO_DELAYED_MICROSTEPS, 0.0),
+
+            'stops': [],  # list of active stop errors, first one first
+            'error_report': '',  # either empty, or description of the current problem
+
+            'info':{
+                'door_open': r.pop(INFO_DOOR_OPEN, False),
+                'chiller_off': r.pop(INFO_CHILLER_OFF, False)
+                },
+            #'offset': [0.0, 0.0, 0.0],  # todo: super-status only; should track changes?
+        }
+
+        # process everything that was not pop()ed above
+        for byte, value in r.items():
+            name = markers_rx.get(byte, repr(byte))
+            if name.startswith('STOPERROR_') and byte != STOPERROR_OK:
+                reason = name.split('STOPERROR_')[1].lower()
+                # e.g. limit_hit_x1 limit_hit_x2 limit_hit_y1 limit_hit_y2 serial_stop_request
+                # see protocol.h for the full list
+                # note: it is significant which STOPERROR_* was reported first (using OrderedDict)
+                self.status['stops'].append(reason)
+            else:
+                logging.warning('unhandled marker_rx %r value %r', name, value)
+
+        # generate summary error report
+        report = ''
+        if not self.device:
+            report = 'disconnected from serial port'
+            if self.disconnect_reason:
+                report += ' - ' + self.disconnect_reason
+        elif self.last_status_report < time.time() - 0.5:
+            report = 'last status update from driveboard is too old'
+        elif self.status['stops']:
+            stops = self.status['stops']
+            report = 'stopped - ' + stops[0]
+            if len(stops) > 1:
+                report += ' (and later also ' + ' '.join(stops[1:]) + ')'
+        self.status['error_report'] = report
+
+        # TODO maybe: push notifications to websocket right away
 
     def send_command(self, cmd):
         cmd = name_to_marker[cmd]
@@ -310,7 +361,7 @@ class Driveboard:
             self.disconnect('No firmware startup greeting and no response to status request. (Wrong firmware?) Bytes received: %r' % self.read_hist)
         else:
             logging.info('Got no startup greeting, but firmware is responding to status requests.')
-            if self.firmware_version:
-                logging.info('Firmware version: %s', self.firmware_version)
+            if self.firmver:
+                logging.info('Firmware version: %s', self.firmver)
             else:
                 self.disconnect('Firmware did not report its version! Incompatible firmware?')
