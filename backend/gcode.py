@@ -40,14 +40,14 @@ class DriveboardGcode:
         if arg == 'full':
             return 'status:' + json.dumps(status)
         elif arg == 'queue':
-            return 'queue:%d,%.1f,%d' % (status['QUEUE_BACKEND'],
-                                         status['QUEUE_FIRMBUF_PERCENT'],
-                                         status['QUEUE_FIRMBUF'])
+            return json.dumps(status['queue'])
         elif not arg:
-            if status['REPORT'] == 'ok':
-                return 'status:ready or busy, but no error'
+            if status['error_report']:
+                return 'status:' + status['error_report']
+            elif status['ready']:
+                return 'status:ready'
             else:
-                return 'status:' + status['REPORT']
+                return 'status:busy'
         else:
             return 'error:invalid status request'
 
@@ -58,7 +58,6 @@ class DriveboardGcode:
         b.send_param('PARAM_PULSE_DURATION', pulse_duration)
 
     def gcode_line(self, line):
-        print(line)
         line = line.split(';')[0].strip()  # remove gcode comments
         if not line:
             return

@@ -10,7 +10,7 @@ app.controller('AdminController', function ($scope, $http, $websocket, $log, $in
     vm.message = '';
 
     vm.status = {};
-    vm.showStatusDetails = false;
+    vm.showJson = false;
     vm.haveStatusUpdates = true;
     vm.lastStatusMessageReceived = true;
 

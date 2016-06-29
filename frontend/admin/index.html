@@ -69,30 +69,29 @@
 
       <table class="table table-bordered">
         <tr><td>
-            status report
+            error report
           </td>
           <td>
-            <!-- <span class="label label-danger" ng-show="vm.status.REPORT != 'ok'">error</span> -->
-            <span class="label label-success" ng-show="vm.status.REPORT == 'ok'">ok</span>
-            <span class="label label-danger" ng-show="vm.status.REPORT != 'ok'">warning</span>
-            <span ng-show="vm.status.REPORT != 'ok'">{{vm.status.REPORT}}</span>
+            <span class="label label-success" ng-show="!vm.status.error_report">ok</span>
+            <span class="label label-danger" ng-show="vm.status.error_report">warning</span>
+            {{vm.status.error_report}}
           </td>
         </tr>
-        <tr><td>idle</td> <td>
-            <span class="label label-success" ng-show="vm.status.INFO_IDLE_YES">yes</span>
-            <span class="label label-warning" ng-show="!vm.status.INFO_IDLE_YES">busy</span>
+        <tr><td>ready</td> <td>
+            <span class="label label-success" ng-show="vm.status.ready">idle</span>
+            <span class="label label-warning" ng-show="!vm.status.ready">busy</span>
         </td></tr>
-        <tr><td>firmware version</td> <td>{{vm.status.FIRMWARE_VERSION}}</td></tr>
-        <tr><td>position</td> <td>{{vm.status.INFO_POS_X | number:1}}, {{vm.status.INFO_POS_Y|number:1}}</td></tr>
+        <tr><td>firmware version</td> <td>{{vm.status.firmver}}</td></tr>
+        <tr><td>position</td> <td>{{vm.status.pos[0] | number:1}}, {{vm.status.pos[1]|number:1}}</td></tr>
       </table>
 
-      Backend Queue: <uib-progressbar max="100000" value="vm.status.QUEUE_BACKEND">{{vm.status.QUEUE_BACKEND}} bytes</uib-progressbar>
-      Firmware Serial RX Buffer: <uib-progressbar max="100" value="vm.status.QUEUE_FIRMBUF_PERCENT">{{vm.status.QUEUE_FIRMBUF_PERCENT|number:0}}% ({{vm.status.QUEUE_FIRMBUF}} bytes)</uib-progressbar>
+      Backend Queue: <uib-progressbar max="100000" value="vm.status.queue.backend">{{vm.status.queue.backend}} bytes</uib-progressbar>
+      Firmware Serial RX Buffer: <uib-progressbar max="100" value="vm.status.queue.firmbuf_percent">{{vm.status.queue.firmbuf_percent|number:0}}% ({{vm.status.queue.firmbuf}} bytes)</uib-progressbar>
 
       <div class="checkbox">
-        <label><input type="checkbox" ng-model="vm.showStatusDetails">Show JSON status</label>
+        <label><input type="checkbox" ng-model="vm.showJson">Show JSON status</label>
       </div>
-      <pre ng-show="vm.showStatusDetails">{{vm.status | json}}</pre>
+      <pre ng-show="vm.showJson">{{vm.status | json}}</pre>
 
       <span us-spinner="{radius:30, width:8, length:16}" spinner-on="vm.busy"></span>
 
