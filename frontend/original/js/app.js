@@ -229,7 +229,7 @@ $(document).ready(function(){
         $("#pause_btn").html('<i class="icon-pause"></i>');
       }
       // serial connected
-      if (data.serial_connected) {
+      if (data.serial) {
         connect_btn_set_state(true);
       } else {
         connect_btn_set_state(false);
@@ -247,8 +247,8 @@ $(document).ready(function(){
       }
 
       // door, chiller, power, limit, buffer
-      if (data.serial_connected) {
-        if (data.door_open) {
+      if (data.serial) {
+        if (data.info.door_open) {
           $('#door_status_btn').removeClass('btn-success')
           $('#door_status_btn').addClass('btn-warning')
           // $().uxmessage('warning', "Door is open!");
@@ -256,7 +256,7 @@ $(document).ready(function(){
           $('#door_status_btn').removeClass('btn-warning')
           $('#door_status_btn').addClass('btn-success')
         }
-        if (data.chiller_off) {
+        if (data.info.chiller_off) {
           $('#chiller_status_btn').removeClass('btn-success')
           $('#chiller_status_btn').addClass('btn-warning')
           // $().uxmessage('warning', "Chiller is off!");
@@ -264,21 +264,22 @@ $(document).ready(function(){
           $('#chiller_status_btn').removeClass('btn-warning')
           $('#chiller_status_btn').addClass('btn-success')
         }
-        if (data.power_off) {
-          $().uxmessage('error', "Power is off!");
-          $().uxmessage('notice', "Turn on Lasersaur power then run homing cycle to reset.");
+        // if (data.power_off) {
+        //   $().uxmessage('error', "Power is off!");
+        //   $().uxmessage('notice', "Turn on Lasersaur power then run homing cycle to reset.");
+        // }
+        if (data.error_report) {
+            // TODO: don't spam
+          $().uxmessage('error', data.error_report);
         }
-        if (data.error) {
-          $().uxmessage('error', data.error);
-        }
-        if (data.x && data.y) {
+        if (data.pos.x && data.pos.y) {
           // only update if not manually entering at the same time
           if (!$('#x_location_field').is(":focus") &&
               !$('#y_location_field').is(":focus") &&
               !$('#location_set_btn').is(":focus") &&
               !$('#origin_set_btn').is(":focus"))
           {
-            var x = parseFloat(data.x).toFixed(2) - app_settings.table_offset[0];
+            var x = parseFloat(data.pos.x).toFixed(2) - app_settings.table_offset[0];
             $('#x_location_field').val(x.toFixed(2));
             $('#x_location_field').animate({
               opacity: 0.5
@@ -287,7 +288,7 @@ $(document).ready(function(){
                 opacity: 1.0
               }, 600, function() {});
             });
-            var y = parseFloat(data.y).toFixed(2) - app_settings.table_offset[1];
+            var y = parseFloat(data.pos.y).toFixed(2) - app_settings.table_offset[1];
             $('#y_location_field').val(y.toFixed(2));
             $('#y_location_field').animate({
               opacity: 0.5
@@ -298,8 +299,8 @@ $(document).ready(function(){
             });
           }
         }
-        if (data.firmware_version && !firmware_version_reported) {
-          $().uxmessage('notice', "Firmware v" + data.firmware_version);
+        if (data.firmver && !firmware_version_reported) {
+          $().uxmessage('notice', "Firmware v" + data.firmver);
           $('#firmware_version').html(data.firmware_version);
           firmware_version_reported = true;
         }
@@ -439,23 +440,10 @@ $(document).ready(function(){
       reset_offset();
     }
     gcode = 'G90\nG0X0Y0F'+app_settings.max_seek_speed+'\n'
-    // $().uxmessage('notice', gcode);  
+    // $().uxmessage('notice', gcode);
     send_gcode(gcode, "Going to origin ...", false);
-    e.preventDefault();   
-  });  
-
-  $("#reset_atmega").click(function(e){
-    $.get('/reset_atmega', function(data) {
-      if (data != "") {
-        $().uxmessage('success', "Atmega restarted!");
-        firmware_version_reported = false;
-      } else {
-        $().uxmessage('error', "Atmega restart failed!");
-      }   
-    });
-    e.preventDefault();   
+    e.preventDefault();
   });
-
 
   /// tab shortcut keys /////////////////////////
   $(document).on('keypress', null, 'p', function(e){

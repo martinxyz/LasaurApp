@@ -82,7 +82,7 @@
             <span class="label label-warning" ng-show="!vm.status.ready">busy</span>
         </td></tr>
         <tr><td>firmware version</td> <td>{{vm.status.firmver}}</td></tr>
-        <tr><td>position</td> <td>{{vm.status.pos[0] | number:1}}, {{vm.status.pos[1]|number:1}}</td></tr>
+        <tr><td>position</td> <td>{{vm.status.pos.x | number:1}}, {{vm.status.pos.y|number:1}}</td></tr>
       </table>
 
       Backend Queue: <uib-progressbar max="100000" value="vm.status.queue.backend">{{vm.status.queue.backend}} bytes</uib-progressbar>

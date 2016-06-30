@@ -242,7 +242,7 @@ class Driveboard:
             # 'appver':conf['version'],
             'firmver': self.firmver,
             'ready': r.pop(INFO_IDLE_YES, False) and not self.firmbuf_queue,
-            #'paused': False, TODO   self._status['paused'] = self._paused
+            'paused': False, # TODO   self._status['paused'] = self._paused
             'serial': bool(self.device),
             # 'progress': TODO, # if self.job_size == 0: self._status['progress'] = 1.0 else: self._status['progress'] = round(SerialLoop.tx_pos/float(SerialLoop.job_size),3)
             'queue': {
@@ -250,11 +250,11 @@ class Driveboard:
                 'firmbuf_percent': firmbuf_percent,
                 'backend': len(self.firmbuf_queue) + len(self.serial_write_queue)
                 },
-            'pos': [
-                r.pop(INFO_POS_X, 0.0),
-                r.pop(INFO_POS_Y, 0.0),
-                r.pop(INFO_POS_Z, 0.0)
-                ],
+            'pos': {
+                'x': r.pop(INFO_POS_X, 0.0),
+                'y': r.pop(INFO_POS_Y, 0.0),
+                'z': r.pop(INFO_POS_Z, 0.0)
+                },
             'underruns': r.pop(INFO_BUFFER_UNDERRUN, 0.0),
             'stackclear': r.pop(INFO_STACK_CLEARANCE, 999999.0),
             'delayed_microsteps': r.pop(INFO_DELAYED_MICROSTEPS, 0.0),

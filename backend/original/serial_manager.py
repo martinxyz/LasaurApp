@@ -11,49 +11,16 @@ from tornado.escape import json_decode
 from tornado.ioloop import IOLoop
 
 class SerialManagerClass:
-
     def __init__(self):
         self.gcode_tcp = None
-
-        self.tx_index = 0
-        self.remoteXON = True
-
-        # TX_CHUNK_SIZE - this is the number of bytes to be
-        # written to the device in one go. It needs to match the device.
-        self.TX_CHUNK_SIZE = 16
-        self.RX_CHUNK_SIZE = 16
-        self.nRequested = 0
-
-        # used for calculating percentage done
-        self.job_active = False
-
-        # status flags
-        self.status = {}
         self.last_poll = 0.0
+        self.status = {}
         self.reset_status()
 
-        self.LASAURGRBL_FIRST_STRING = "LasaurGrbl"
-
-        self.ready_char = '\x12'
-        self.request_ready_char = '\x14'
-        self.last_request_ready = 0
-
-
-
     def reset_status(self):
-        self.status = {
-            'ready': False,  # turns True by querying status (TODO)
-            'paused': False,  # this is also a control flag
-            'power_off': False,
-            'limit_hit': False,
-            'serial_stop_request': False,
-            'door_open': False,
-            'chiller_off': False,
-            'x': False,
-            'y': False,
-            'firmware_version': None,
-            'error': None
-        }
+        # just the basics
+        self.status['ready'] = False
+        self.status['serial'] = False
 
     def connect(self):
         if self.gcode_tcp is not None:
@@ -108,35 +75,12 @@ class SerialManagerClass:
             self.last_poll = time.time()
         return self.status
 
-
-    def flush_input(self):
-        if self.device:
-            self.device.flushInput()
-
-    def flush_output(self):
-        if self.device:
-            self.device.flushOutput()
-
-
     def queue_gcode(self, gcode):
+        if not gcode.endswith('\n'):
+            gcode += '\n'
         if not self.gcode_tcp:
             return
-        lines = gcode.split('\n')
-        for line in lines:
-            line = line.strip()
-            if line == '' or line[0] == '%':
-                continue
-
-            if not line.startswith('?'):  # not ready unless just a ?-query
-                self.status['ready'] = False
-            line += '\n'
-            self.gcode_tcp.write(line.encode('ascii'))
-
-        self.job_active = True
-
-    def is_queue_empty(self):
-        print('TODO: is_queue_empty')
-
+        self.gcode_tcp.write(gcode.encode('ascii'))
 
     def get_queue_percentage_done(self):
         print('TODO: get_queue_percentage_done')
@@ -144,38 +88,24 @@ class SerialManagerClass:
         #if buflen == 0:
         #    return ""
         #return str(100*self.tx_index/float(buflen))
-
+        return "100"
 
     def set_pause(self, flag):
+        print('TODO: pause via gcode')
+        return False
         # returns pause status
-        if self.is_queue_empty():
-            return False
-        else:
-            if flag:  # pause
-                self.status['paused'] = True
-                return True
-            else:     # unpause
-                self.status['paused'] = False
-                return False
-
+        # if self.is_queue_empty():
+        #     return False
+        # else:
+        #     if flag:  pause
+        #         self.status['paused'] = True
+        #         return True
+        #     else:     unpause
+        #         self.status['paused'] = False
+        #         return False
 
     def process_status(self, status):
-        self.status['x'] = status['INFO_POS_X']
-        self.status['y'] = status['INFO_POS_Y']
-        self.status['serial_connected'] = status['CONNECTED']
-        self.status['ready'] = status.get('INFO_IDLE_YES')
-        if not status.get('STOPERROR_OK'):
-            self.status['ready'] = False
-        self.status['door_open'] = status.get('INFO_DOOR_OPEN')
-        self.status['chiller_off'] = status.get('INFO_CHILLER_OFF')
-        self.status['firmware_version'] = status.get('FIRMWARE_VERSION')
-        report = status['REPORT']
-        if report == 'ok':
-            self.status['error'] = None
-        else:
-            self.status['error'] = report
-
-
+        self.status = status
 
 # singelton
 SerialManager = SerialManagerClass()
