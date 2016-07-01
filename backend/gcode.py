@@ -94,7 +94,11 @@ class DriveboardGcode:
         parts = re.split(r'([A-Z])', line)
         if parts[0] != '' or len(parts) < 3:
             return 'error:ignored unknown gcode %r' % line
-        cmd = (parts[1] + parts[2]).strip()
+        try:
+            # this way, we support both G00 and G0
+            cmd = (parts[1] + str(int(parts[2]))).strip()
+        except ValueError:
+            return 'error:gcode line ignored, could not parse int in %r' % line
         parts = parts[3:]
 
         args = {}
