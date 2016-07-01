@@ -88,10 +88,10 @@ def flash_upload(conf, firmware_name='LasaurGrbl'):
             # Setting it to low triggers a reset.
             # echo 71 > /sys/class/gpio/export
             try:
-                fw = file("/sys/class/gpio/export", "w")
+                fw = open("/sys/class/gpio/export", "w")
                 fw.write("%d" % (71))
                 fw.close()
-                fwb = file("/sys/class/gpio/export", "w")
+                fwb = open("/sys/class/gpio/export", "w")
                 fwb.write("%d" % (73))
                 fwb.close()
             except IOError:
@@ -99,18 +99,18 @@ def flash_upload(conf, firmware_name='LasaurGrbl'):
                 pass
             # set the gpio pin to output
             # echo out > /sys/class/gpio/gpio71/direction
-            fw = file("/sys/class/gpio/gpio71/direction", "w")
+            fw = open("/sys/class/gpio/gpio71/direction", "w")
             fw.write("out")
             fw.close()
-            fwb = file("/sys/class/gpio/gpio73/direction", "w")
+            fwb = open("/sys/class/gpio/gpio73/direction", "w")
             fwb.write("out")
             fwb.close()
             # set the gpio pin low -> high
             # echo 1 > /sys/class/gpio/gpio71/value
-            fw = file("/sys/class/gpio/gpio71/value", "w")
+            fw = open("/sys/class/gpio/gpio71/value", "w")
             fw.write("0")
             fw.flush()
-            fwb = file("/sys/class/gpio/gpio73/value", "w")
+            fwb = open("/sys/class/gpio/gpio73/value", "w")
             fwb.write("0")
             fwb.flush()
             time.sleep(0.5)
@@ -149,24 +149,24 @@ def reset_atmega(conf):
     print("Resetting Atmega ...")
     if conf['board'] == 'beaglebone':
         try:
-            fw = file("/sys/class/gpio/export", "w")
+            fw = open("/sys/class/gpio/export", "w")
             fw.write("%d" % (71))
             fw.close()
-            fwb = file("/sys/class/gpio/export", "w")
+            fwb = open("/sys/class/gpio/export", "w")
             fwb.write("%d" % (73))
             fwb.close()
         except IOError:
             pass
-        fw = file("/sys/class/gpio/gpio71/direction", "w")
+        fw = open("/sys/class/gpio/gpio71/direction", "w")
         fw.write("out")
         fw.close()
-        fwb = file("/sys/class/gpio/gpio73/direction", "w")
+        fwb = open("/sys/class/gpio/gpio73/direction", "w")
         fwb.write("out")
         fwb.close()
-        fw = file("/sys/class/gpio/gpio71/value", "w")
+        fw = open("/sys/class/gpio/gpio71/value", "w")
         fw.write("0")
         fw.flush()
-        fwb = file("/sys/class/gpio/gpio73/value", "w")
+        fwb = open("/sys/class/gpio/gpio73/value", "w")
         fwb.write("0")
         fwb.flush()
         time.sleep(0.2)

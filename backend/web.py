@@ -5,10 +5,8 @@ import tornado.web
 import tornado.websocket
 import tornado.tcpserver
 #from tornado.escape import json_encode, json_decode
-from tornado.ioloop import IOLoop, PeriodicCallback
+from tornado.ioloop import PeriodicCallback
 from tornado import gen
-import os.path
-from tornado.options import define, options
 
 import build
 import flash
@@ -123,7 +121,6 @@ class ConfigHandler(tornado.web.RequestHandler):
             baudrate=c.get('driveboard', 'baudrate'),
             serial_port=c.get('driveboard', 'serial_port'),
             original_port=c.get('original', 'network_port'),
-            nothing=c.get('driveboard', 'balsdkfj', fallback=None),
             )
         self.write(res)
 

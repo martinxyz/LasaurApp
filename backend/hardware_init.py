@@ -1,30 +1,7 @@
-import sys, os
-
-def detect_board():
-    ### check if running on RaspberryPi
-    try:
-        import RPi.GPIO
-        return 'raspberrypi'
-    except ImportError:
-        pass
-
-    ### check if running on BBB
-    # also works on old Beaglebone if named 'lasersaur'
-    # os.uname() on BBB:
-    # ('Linux', 'lasersaur', '3.8.13-bone20',
-    #  '#1 SMP Wed May 29 06:14:59 UTC 2013', 'armv7l')
-    uname = os.uname()
-    if sys.platform == "linux2" and \
-       (uname[1] == 'lasersaur' or '-bone' in uname[2]):
-        return 'beaglebone'
-
-    return 'standard'
+import os
+import glob
 
 def init(board):
-    if board == 'auto-detect':
-        board = detect_board()
-        print('board auto-detect result: %r', board)
-
     if board == 'beaglebone':
         print('doing beaglebone-specific GPIO hardware init')
 
@@ -32,11 +9,11 @@ def init(board):
         if os.path.exists("/sys/kernel/debug/omap_mux/uart1_txd"):
             # we are not on the beaglebone black, setup uart1
             # echo 0 > /sys/kernel/debug/omap_mux/uart1_txd
-            fw = file("/sys/kernel/debug/omap_mux/uart1_txd", "w")
+            fw = open("/sys/kernel/debug/omap_mux/uart1_txd", "w")
             fw.write("%X" % (0))
             fw.close()
             # echo 20 > /sys/kernel/debug/omap_mux/uart1_rxd
-            fw = file("/sys/kernel/debug/omap_mux/uart1_rxd", "w")
+            fw = open("/sys/kernel/debug/omap_mux/uart1_rxd", "w")
             fw.write("%X" % ((1 << 5) | 0))
             fw.close()
 
@@ -61,7 +38,7 @@ def init(board):
             os.system("echo gpio > %s" % (pin46))
 
         try:
-            fw = file("/sys/class/gpio/export", "w")
+            fw = open("/sys/class/gpio/export", "w")
             fw.write("%d" % (71))
             fw.close()
         except IOError:
@@ -69,12 +46,12 @@ def init(board):
             pass
         # set the gpio pin to output
         # echo out > /sys/class/gpio/gpio71/direction
-        fw = file("/sys/class/gpio/gpio71/direction", "w")
+        fw = open("/sys/class/gpio/gpio71/direction", "w")
         fw.write("out")
         fw.close()
         # set the gpio pin high
         # echo 1 > /sys/class/gpio/gpio71/value
-        fw = file("/sys/class/gpio/gpio71/value", "w")
+        fw = open("/sys/class/gpio/gpio71/value", "w")
         fw.write("1")
         fw.flush()
         fw.close()
@@ -90,7 +67,7 @@ def init(board):
             os.system("echo gpio > %s" % (pin44))
 
         try:
-            fw = file("/sys/class/gpio/export", "w")
+            fw = open("/sys/class/gpio/export", "w")
             fw.write("%d" % (73))
             fw.close()
         except IOError:
@@ -98,12 +75,12 @@ def init(board):
             pass
         # set the gpio pin to output
         # echo out > /sys/class/gpio/gpio73/direction
-        fw = file("/sys/class/gpio/gpio73/direction", "w")
+        fw = open("/sys/class/gpio/gpio73/direction", "w")
         fw.write("out")
         fw.close()
         # set the gpio pin high
         # echo 1 > /sys/class/gpio/gpio73/value
-        fw = file("/sys/class/gpio/gpio73/value", "w")
+        fw = open("/sys/class/gpio/gpio73/value", "w")
         fw.write("1")
         fw.flush()
         fw.close()
@@ -117,18 +94,18 @@ def init(board):
             os.system("echo gpio > %s" % (pin39))
 
         try:
-            fw = file("/sys/class/gpio/export", "w")
+            fw = open("/sys/class/gpio/export", "w")
             fw.write("%d" % (76))
             fw.close()
         except IOError:
             # probably already exported
             pass
         # set the gpio pin to input
-        fw = file("/sys/class/gpio/gpio76/direction", "w")
+        fw = open("/sys/class/gpio/gpio76/direction", "w")
         fw.write("in")
         fw.close()
         # set the gpio pin high
-        fw = file("/sys/class/gpio/gpio76/value", "r")
+        fw = open("/sys/class/gpio/gpio76/value", "r")
         ret = fw.read()
         fw.close()
         print("Stepper driver configure pin is: " + str(ret))
@@ -140,14 +117,14 @@ def init(board):
         GPIO.setmode(GPIO.BCM)  # use chip pin number
         pinSense = 7
         pinReset = 2
-        pinExt1 = 3
-        pinExt2 = 4
-        pinExt3 = 17
-        pinTX = 14
-        pinRX = 15
+        # pinExt1 = 3
+        # pinExt2 = 4
+        # pinExt3 = 17
+        # pinTX = 14
+        # pinRX = 15
         # read sens pin
         GPIO.setup(pinSense, GPIO.IN)
-        isSMC11 = GPIO.input(pinSense)
+        isSMC11 = GPIO.input(pinSense)  # why?
         # atmega reset pin
         GPIO.setup(pinReset, GPIO.OUT)
         GPIO.output(pinReset, GPIO.HIGH)
