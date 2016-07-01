@@ -90,18 +90,14 @@ class SerialManagerClass:
         return "100"
 
     def set_pause(self, flag):
-        print('TODO: pause via gcode')
-        return False
-        # returns pause status
-        # if self.is_queue_empty():
-        #     return False
-        # else:
-        #     if flag:  pause
-        #         self.status['paused'] = True
-        #         return True
-        #     else:     unpause
-        #         self.status['paused'] = False
-        #         return False
+        #if self.is_queue_empty():
+        #    return False
+        if flag:
+            self.queue_gcode('!pause')
+            return True
+        else:
+            self.queue_gcode('!unpause')
+            return False
 
     def process_status(self, status):
         self.status = status
