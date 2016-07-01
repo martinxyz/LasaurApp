@@ -264,7 +264,7 @@ class Driveboard:
             # 'progress': TODO, # if self.job_size == 0: self._status['progress'] = 1.0 else: self._status['progress'] = round(SerialLoop.tx_pos/float(SerialLoop.job_size),3)
             'queue': {
                 'firmbuf': self.firmbuf_used,
-                'firmbuf_percent': firmbuf_percent,
+                'firmbuf_percent': round(firmbuf_percent, 2),
                 'backend': len(self.firmbuf_queue) + len(self.serial_write_queue)
                 },
             'pos': {
