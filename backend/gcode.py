@@ -51,31 +51,45 @@ class DriveboardGcode:
         else:
             return 'error:invalid status request'
 
-    def gcode_line(self, line):
-        line = line.split(';')[0].strip()  # remove gcode comments
-        if not line:
-            return ''
-        if line == 'version':
-            return 'info:' + self.version
-
+    def special_line(self, line):
         # those commands work even when disconnected:
         if line[0] == '?':
             # status request
             arg = line[1:].strip()
             return self.status_request(arg)
-        elif line[0] == '~':
-            # recover from stop condition
-            self.driveboard.connect()
+        elif line == '!' or line == '!stop':
+            # instant stop
+            self.driveboard.send_command('CMD_STOP')
+            return 'info:stopping'
+        elif line == '~' or line == '!resume':
+            # recover from all stop conditions
+            error = self.driveboard.connect()
+            if error: return 'error:' + error
             self.driveboard.send_command('CMD_RESUME')
-            return 'info:resume'
+            self.driveboard.unpause()
+            return 'info:resuming'
+        elif line == '!pause':
+            self.driveboard.pause()
+            return 'info:pausing'
+        elif line == '!unpause':
+            self.driveboard.unpause()
+            return 'info:continuing'
+        elif line == '!version':
+            return 'info:' + self.version
+        else:
+            return 'error:invalid command'
+
+    def gcode_line(self, line):
+        line = line.split(';')[0].strip()  # remove gcode comments
+        if not line:
+            return ''
+
+        if line[0] in '?!~':
+            return self.special_line(line)
 
         if not self.driveboard.is_connected():
             return 'error:' + self.driveboard.get_disconnect_reason()
 
-        if line[0] == '!':
-            # instant stop
-            self.driveboard.send_command('CMD_STOP')
-            return 'info:stop'
         # extract gcode parameters
         parts = re.split(r'([A-Z])', line)
         if parts[0] != '' or len(parts) < 3:

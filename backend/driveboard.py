@@ -61,6 +61,7 @@ class Driveboard:
 
         self.firmbuf_used = 0
         self.firmbuf_queue = bytearray()
+        self.paused = False
 
         self.disconnect_reason = None
         self.firmver = None
@@ -123,6 +124,14 @@ class Driveboard:
 
     def get_disconnect_reason(self):
         return self.disconnect_reason or 'disconnected'
+
+    def pause(self):
+        self.paused = True
+
+    def unpause(self):
+        self.paused = False
+        # start sending again
+        self._send_fwbuf()
 
     def get_status(self):
         if self.last_status_report < time.time() - 0.5:
@@ -226,6 +235,15 @@ class Driveboard:
         self._update_status(self.status_raw)
         self.status_raw.clear()
 
+        if self.status['stops']:
+            # We flush our queue; the firmware will do the same while stopped.
+            #
+            # If we did not flush it, it could take several seconds
+            # until the whole job is fully sent over the serial port
+            # and discarded by the firmware. The user might then press
+            # "resume" while old commands are still being sent.
+            self.firmbuf_queue.clear()
+
     def _update_status(self, status_raw):
         # TODO: also run this if no status arrives?
         self.last_status_report = time.time()
@@ -241,7 +259,7 @@ class Driveboard:
             # 'appver':conf['version'],
             'firmver': self.firmver,
             'ready': r.pop(INFO_IDLE_YES, False) and not self.firmbuf_queue,
-            'paused': False, # TODO   self._status['paused'] = self._paused
+            'paused': self.paused,
             'serial': bool(self.device),
             # 'progress': TODO, # if self.job_size == 0: self._status['progress'] = 1.0 else: self._status['progress'] = round(SerialLoop.tx_pos/float(SerialLoop.job_size),3)
             'queue': {
@@ -325,7 +343,13 @@ class Driveboard:
         self._send_fwbuf(data)
 
     def _send_fwbuf(self, data=b''):
+        if self.status['stops']:
+            return  # while stopped, the firmware also discards all queued bytes
         self.firmbuf_queue += data
+        if self.paused:
+            return
+
+        # transfer firmbuf_queue to the driveboard (if space is available)
         available = FIRMBUF_SIZE - self.firmbuf_used
 
         if available > 0 and self.firmbuf_queue:

@@ -34,8 +34,7 @@ class SerialManagerClass:
 
         gcode_tcp = yield TCPClient().connect('localhost', 7777)
         greeting = yield gcode_tcp.read_until(b'\n')
-        print('got greeting', repr(greeting))
-        assert(b'LasaurGrbl2' in greeting)
+        assert b'LasaurGrbl2' in greeting, repr(greeting)
 
         try:
             self.gcode_tcp = gcode_tcp
