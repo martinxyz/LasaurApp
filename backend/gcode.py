@@ -12,8 +12,8 @@ class DriveboardGcode:
         # modal state of the gcode protocol (last used parameter)
         self.relative = False
         self.feedrate = None
-        self.pulse_frequency = None
-        self.pulse_duration = None
+        # self.pulse_frequency = None
+        # self.pulse_duration = None
         self.x = None
         self.y = None
         self.z = None
@@ -51,20 +51,12 @@ class DriveboardGcode:
         else:
             return 'error:invalid status request'
 
-    def set_intensity(self, value):
-        pulse_frequency, pulse_duration = pulseraster.intensity2pulse(value)
-        b = self.driveboard
-        b.send_param('PARAM_PULSE_FREQUENCY', pulse_frequency)
-        b.send_param('PARAM_PULSE_DURATION', pulse_duration)
-
     def gcode_line(self, line):
         line = line.split(';')[0].strip()  # remove gcode comments
         if not line:
-            return
+            return ''
         if line == 'version':
-            return self.version
-
-        b = self.driveboard
+            return 'info:' + self.version
 
         # those commands work even when disconnected:
         if line[0] == '?':
@@ -73,16 +65,16 @@ class DriveboardGcode:
             return self.status_request(arg)
         elif line[0] == '~':
             # recover from stop condition
-            b.connect()
-            b.send_command('CMD_RESUME')
+            self.driveboard.connect()
+            self.driveboard.send_command('CMD_RESUME')
             return 'info:resume'
 
-        if not b.is_connected():
-            return 'error:disconnected - ' + b.get_disconnect_reason()
+        if not self.driveboard.is_connected():
+            return 'error:' + self.driveboard.get_disconnect_reason()
 
         if line[0] == '!':
             # instant stop
-            b.send_command('CMD_STOP')
+            self.driveboard.send_command('CMD_STOP')
             return 'info:stop'
         # extract gcode parameters
         parts = re.split(r'([A-Z])', line)
@@ -100,12 +92,17 @@ class DriveboardGcode:
             except ValueError:
                 return 'error:gcode line ignored, could not parse float in %r' % line
 
+        # result of parsing
+        params = []
+        command = None
+        intensity_value = None
+
         if cmd in ('G0', 'G1'):
             # move (G0: without lasing; G1: with lasing)
-            if 'X' in args: b.send_param('PARAM_TARGET_X', args['X'])
-            if 'Y' in args: b.send_param('PARAM_TARGET_Y', args['Y'])
-            if 'Z' in args: b.send_param('PARAM_TARGET_Z', args['Z'])
-            if 'F' in args: b.send_param('PARAM_FEEDRATE', args['F'])
+            if 'X' in args: params.append(('PARAM_TARGET_X', args['X']))
+            if 'Y' in args: params.append(('PARAM_TARGET_Y', args['Y']))
+            if 'Z' in args: params.append(('PARAM_TARGET_Z', args['Z']))
+            if 'F' in args: params.append(('PARAM_FEEDRATE', args['F']))
 
             # consume arguments and keep track of state
             self.x = args.pop('X', self.x)
@@ -119,56 +116,64 @@ class DriveboardGcode:
                 self.z = None
 
             if cmd == 'G0':
-                b.send_command('CMD_LINE_SEEK')
+                command = 'CMD_LINE_SEEK'
             elif cmd == 'G1':
-                b.send_command('CMD_LINE_BURN')
+                command = 'CMD_LINE_BURN'
+                intensity_value = args.pop('S', None)
 
         elif cmd == 'G90':
-            b.send_command('CMD_REF_ABSOLUTE')
+            command = 'CMD_REF_ABSOLUTE'
             self.relative = False
         elif cmd == 'G91':
-            b.send_command('CMD_REF_RELATIVE')
+            command = 'CMD_REF_RELATIVE'
             self.relative = True
-        elif cmd == 'M80': b.send_command('CMD_AIR_ENABLE')
-        elif cmd == 'M81': b.send_command('CMD_AIR_DISABLE')
-        elif cmd == 'M82': b.send_command('CMD_AUX1_ENABLE')
-        elif cmd == 'M83': b.send_command('CMD_AUX1_DISABLE')
-        elif cmd == 'M84': b.send_command('CMD_AUX2_ENABLE')
-        elif cmd == 'M85': b.send_command('CMD_AUX2_DISABLE')
+        elif cmd == 'M80': command = 'CMD_AIR_ENABLE'
+        elif cmd == 'M81': command = 'CMD_AIR_DISABLE'
+        elif cmd == 'M82': command = 'CMD_AUX1_ENABLE'
+        elif cmd == 'M83': command = 'CMD_AUX1_DISABLE'
+        elif cmd == 'M84': command = 'CMD_AUX2_ENABLE'
+        elif cmd == 'M85': command = 'CMD_AUX2_DISABLE'
         elif cmd == 'G10':
             # set offset
             # note: the firmware calls stepper_get_position_x/y/z and ignores the params
             #       (not sure if this is as intended)
             # note: LasaurGrbl docu talks about "L20" and "L2" - what is this? Not used by FW?
             p = args.pop('P')
-            if p == 0: b.send_command('CMD_SET_OFFSET_TABLE')
-            elif p == 1: b.send_command('CMD_SET_OFFSET_CUSTOM')
+            if p == 0: command = 'CMD_SET_OFFSET_TABLE'
+            elif p == 1: command = 'CMD_SET_OFFSET_CUSTOM'
             else: return 'error:invalid set_offset command %r' % line
         elif cmd == 'G54':
-            b.send_command('CMD_SEL_OFFSET_TABLE')
+            command = 'CMD_SEL_OFFSET_TABLE'
         elif cmd == 'G55':
-            b.send_command('CMD_SEL_OFFSET_CUSTOM')
+            command = 'CMD_SEL_OFFSET_CUSTOM'
         elif cmd == 'G30':
-            b.send_command('CMD_HOMING')
+            command = 'CMD_HOMING'
             # homing moves to the table offset (not always (0, 0))
-            # make sure we send all target parameters for the next move
             self.x = None
             self.y = None
             self.z = None
         elif cmd[0] == 'S':
             # set intensity
-            try:
-                intensity = float(line[1:])
-            except ValueError:
-                self.set_intensity(0)
-                return 'error:invalid S command %r, setting intensity to zero' % line
-            if intensity < 0 or intensity > 255:
-                self.set_intensity(0)
-                return 'error:intensity out of range (0-255) %r, setting intensity to zero' % line
-            value = intensity / 255.0
-            self.set_intensity(value)
+            intensity_value = line[1:]
         else:
-            return 'error:ignored unknown gcode command %r' % line
+            return 'error:unknown gcode command %r' % line
         if args:
-            return 'error:ignored arguments %r of gcode line %r' % (args, line)
+            return 'error:unknown arguments %r in gcode line %r' % (args, line)
+
+        if intensity_value is not None:
+            try:
+                intensity = float(intensity_value)
+            except ValueError:
+                return 'error:invalid intensity %r' % line
+            if intensity < 0 or intensity > 255:
+                return 'error:intensity out of range (0-255) %r' % line
+            frequency, duration = pulseraster.intensity2pulse(intensity / 255.0)
+            params.append(('PARAM_PULSE_FREQUENCY', frequency))
+            params.append(('PARAM_PULSE_DURATION', duration))
+
+        # execute
+        for name, value in params:
+            self.driveboard.send_param(name, value)
+        if command:
+            self.driveboard.send_command(command)
         return 'ok'
