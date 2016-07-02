@@ -348,7 +348,14 @@ def job_submit_handler():
 
 @route('/queue_pct_done')
 def queue_pct_done_handler():
-    return SerialManager.get_queue_percentage_done()
+    status = SerialManager.get_hardware_status()
+    percent = status['queue']['job_percent']
+    idle = status['ready']
+    if idle and percent == 100.0:
+        return ''
+    else:
+        return str(percent)
+
 
 
 @route('/file_reader', method='POST')
