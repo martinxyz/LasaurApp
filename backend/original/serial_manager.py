@@ -9,6 +9,7 @@ from tornado.tcpclient import TCPClient
 from tornado import gen
 from tornado.escape import json_decode
 from tornado.ioloop import IOLoop
+from tornado.iostream import StreamClosedError
 
 class SerialManagerClass:
     def __init__(self):
@@ -45,6 +46,8 @@ class SerialManagerClass:
                     print('gcode-tcp connection closed.')
                     break
                 self.gcode_tcp_line(res.decode('ascii'))
+        except StreamClosedError:
+            print('gcode-tcp connection closed.')
         finally:
             self.gcode_tcp = None
             self.reset_status()
@@ -54,9 +57,9 @@ class SerialManagerClass:
         if line.startswith('status:'):
             self.process_status(json_decode(line[7:]))
         elif line.startswith('error:'):
+            # report first gcode error
             if not self.gcode_error:
                 self.gcode_error = line
-            print(line)
 
     def close(self):
         if self.gcode_tcp:

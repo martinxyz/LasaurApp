@@ -3,6 +3,7 @@ var hardware_ready_state = false;
 var firmware_version_reported = false;
 var lasaurapp_version_reported = false;
 var progress_not_yet_done_flag = false;
+var previous_error_report = '';
 
 
 (function($){
@@ -63,7 +64,11 @@ function send_gcode(gcode, success_msg, progress) {
         // dataType: "json",
         success: function (data) {
           if (data == "__ok__") {
+            if (previous_error_report) {
+              $().uxmessage('error', 'Error unresolved: ' + previous_error_report);
+            }
             $().uxmessage('success', success_msg);
+
             if (progress = true) {
               // show progress bar, register live updates
               if ($("#progressbar").children().first().width() == 0) {
@@ -273,10 +278,6 @@ $(document).ready(function(){
         //   $().uxmessage('error', "Power is off!");
         //   $().uxmessage('notice', "Turn on Lasersaur power then run homing cycle to reset.");
         // }
-        if (data.error_report) {
-            // TODO: don't spam
-          $().uxmessage('error', data.error_report);
-        }
         if (data.pos.x && data.pos.y) {
           // only update if not manually entering at the same time
           if (!$('#x_location_field').is(":focus") &&
@@ -314,6 +315,14 @@ $(document).ready(function(){
         $().uxmessage('notice', "LasaurApp v" + data.lasaurapp_version);
         $('#lasaurapp_version').html(data.lasaurapp_version);
         lasaurapp_version_reported = true;
+      }
+      if (data.error_report != previous_error_report) {
+        previous_error_report = data.error_report;
+        if (data.error_report) {
+          $().uxmessage('error', 'Error: ' + data.error_report);
+        } else {
+          $().uxmessage('success', 'Error resolved');
+        }
       }
       // schedule next hardware poll
       setTimeout(function() {poll_hardware_status()}, 300);
