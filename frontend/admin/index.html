@@ -85,6 +85,7 @@
         <tr><td>position</td> <td>{{vm.status.pos.x | number:1}}, {{vm.status.pos.y|number:1}}</td></tr>
       </table>
 
+      Job progress: <uib-progressbar max="100" type="success" value="vm.status.queue.job_percent">{{vm.status.queue.job_percent|number:0}}%</uib-progressbar>
       Backend Queue: <uib-progressbar max="100000" value="vm.status.queue.backend">{{vm.status.queue.backend}} bytes</uib-progressbar>
       Firmware Serial RX Buffer: <uib-progressbar max="100" value="vm.status.queue.firmbuf_percent">{{vm.status.queue.firmbuf_percent|number:0}}% ({{vm.status.queue.firmbuf}} bytes)</uib-progressbar>
 

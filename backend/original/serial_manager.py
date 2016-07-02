@@ -82,12 +82,7 @@ class SerialManagerClass:
         self.gcode_tcp.write(gcode.encode('ascii'))
 
     def get_queue_percentage_done(self):
-        print('TODO: get_queue_percentage_done')
-        #buflen = len(self.tx_buffer)
-        #if buflen == 0:
-        #    return ""
-        #return str(100*self.tx_index/float(buflen))
-        return "100"
+        return str(self.get_hardware_status()['queue']['job_percent'])
 
     def set_pause(self, flag):
         #if self.is_queue_empty():

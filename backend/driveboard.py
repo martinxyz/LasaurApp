@@ -1,3 +1,9 @@
+"""raw serial communication with the driveboard
+
+Implements the firmware binary serial protocol, tracks the firmware
+command buffer, reports error and status.
+"""
+
 import os
 import time
 import ast
@@ -5,7 +11,6 @@ from collections import OrderedDict
 import struct
 import serial
 import logging
-#import serial.tools.list_ports
 from tornado.ioloop import IOLoop, PeriodicCallback
 
 ## firmware constants, need to match device firmware
@@ -62,6 +67,7 @@ class Driveboard:
         self.firmbuf_used = 0
         self.firmbuf_queue = bytearray()
         self.paused = False
+        self.jobsize = 0
 
         self.disconnect_reason = None
         self.firmver = None
@@ -74,7 +80,7 @@ class Driveboard:
         PeriodicCallback(self._status_timer_cb, polling_interval).start()
 
         # initialize self.status
-        self._update_status({})
+        self._update_status()
 
 
     def reset_protocol(self):
@@ -137,7 +143,7 @@ class Driveboard:
         if self.last_status_report < time.time() - 0.5:
             # no firmware status updates (e.g. disconnected)
             # update local status without firmware information
-            self._update_status({})
+            self._update_status()
 
         return self.status
 
@@ -244,15 +250,26 @@ class Driveboard:
             # "resume" while old commands are still being sent.
             self.firmbuf_queue.clear()
 
-    def _update_status(self, status_raw):
-        # TODO: also run this if no status arrives?
-        self.last_status_report = time.time()
+    def _update_status(self, status_raw={}):
+        if status_raw:
+            # new firmware status is available
+            self.last_status_report = time.time()
 
+        # Estimate "percent firmware buffer used"
+        #
         # We don't know the exact state of the firmware buffer because
         # we receive a confirmation only every TX_CHUNK_SIZE bytes. But
         # for GUI purpose a "percent" display should show zero when idle.
         firmbuf_used_for_sure = max(0, self.firmbuf_used - TX_CHUNK_SIZE)
         firmbuf_percent = 100.0 * float(firmbuf_used_for_sure) / (FIRMBUF_SIZE - TX_CHUNK_SIZE)
+
+        # Estimate "percent job done" (percent of bytes, not execution time)
+        bytes_waiting = firmbuf_used_for_sure + len(self.firmbuf_queue) + len(self.serial_write_queue)
+        if bytes_waiting == 0:
+            job_percent = 100.0
+        else:
+            self.jobsize = max(bytes_waiting, self.jobsize)
+            job_percent = 100.0 * (1.0 - float(bytes_waiting) / self.jobsize)
 
         r = status_raw
         self.status = {
@@ -265,7 +282,8 @@ class Driveboard:
             'queue': {
                 'firmbuf': self.firmbuf_used,
                 'firmbuf_percent': round(firmbuf_percent, 2),
-                'backend': len(self.firmbuf_queue) + len(self.serial_write_queue)
+                'backend': len(self.firmbuf_queue) + len(self.serial_write_queue),
+                'job_percent': round(job_percent, 2)
                 },
             'pos': {
                 'x': r.pop(INFO_POS_X, 0.0),
