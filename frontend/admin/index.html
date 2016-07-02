@@ -55,7 +55,20 @@
       -->
 
       <h2>Firmware</h2>
-      <h3>Configuration</h3>
+
+      <div class="btn-group" uib-dropdown>
+        <button id="change-firmware" type="button" class="btn btn-danger" uib-dropdown-toggle ng-disabled="vm.busy" ng-click="vm.message = ''">
+          Change Firmware <span class="caret"></span>
+        </button>
+        <ul class="dropdown-menu" uib-dropdown-menu>
+          <li><a href="#" ng-click="vm.buildAndFlash()">Build from Source and Flash (recommended)</a></li>
+          <li><a href="#" ng-click="vm.flashRelease()">Flash Pre-Built Release (if you cannot build)</a></li>
+          <li class="divider"></li>
+          <li><a href="#" ng-click="vm.resetFirmware()">Reset Atmega (Restart Firmware)</a></li>
+        </ul>
+      </div>
+      {{vm.message}}
+
       <table class="table table-bordered">
         <tr><td>serial port</td> <td>{{vm.config.serial_port}}</td></tr>
         <tr><td>baudrate</td> <td>{{vm.config.baudrate}}</td></tr>
@@ -66,6 +79,8 @@
       <p ng-show="!vm.haveStatusUpdates">
         <span class="label label-warning">connection lost (showing old information)</span>
       </p>
+
+      <span us-spinner="{radius:30, width:8, length:16}" spinner-on="vm.busy"></span>
 
       <table class="table table-bordered">
         <tr><td>
@@ -94,20 +109,6 @@
       </div>
       <pre ng-show="vm.showJson">{{vm.status | json}}</pre>
 
-      <span us-spinner="{radius:30, width:8, length:16}" spinner-on="vm.busy"></span>
-
-      <div class="btn-group" uib-dropdown>
-        <button id="change-firmware" type="button" class="btn btn-danger" uib-dropdown-toggle ng-disabled="vm.busy" ng-click="vm.message = ''">
-          Change Firmware <span class="caret"></span>
-        </button>
-        <ul class="dropdown-menu" uib-dropdown-menu>
-          <li><a href="#" ng-click="vm.buildAndFlash()">Build from Source and Flash (recommended)</a></li>
-          <li><a href="#" ng-click="vm.flashRelease()">Flash Pre-Built Release (if you cannot build)</a></li>
-          <li class="divider"></li>
-          <li><a href="#" ng-click="vm.resetFirmware()">Reset Atmega (Restart Firmware)</a></li>
-        </ul>
-      </div>
-      {{vm.message}}
 
     </div>
   </div>
