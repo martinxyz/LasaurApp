@@ -315,6 +315,7 @@ def get_status():
     status = copy.deepcopy(SerialManager.get_hardware_status())
     status['serial_connected'] = SerialManager.is_connected()
     status['lasaurapp_version'] = VERSION
+    status['gcode_error'] = SerialManager.pop_gcode_error()
     return json.dumps(status)
 
 

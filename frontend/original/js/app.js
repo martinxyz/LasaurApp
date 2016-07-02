@@ -246,6 +246,11 @@ $(document).ready(function(){
         hardware_ready_state = false;
       }
 
+      // gcode parser errors
+      if (data.gcode_error) {
+        $().uxmessage('error', data.gcode_error);
+      }
+
       // door, chiller, power, limit, buffer
       if (data.serial) {
         if (data.info.door_open) {

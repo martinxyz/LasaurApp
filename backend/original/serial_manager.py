@@ -16,6 +16,7 @@ class SerialManagerClass:
         self.last_poll = 0.0
         self.status = {}
         self.reset_status()
+        self.gcode_error = ''
 
     def reset_status(self):
         # just the basics
@@ -53,6 +54,8 @@ class SerialManagerClass:
         if line.startswith('status:'):
             self.process_status(json_decode(line[7:]))
         elif line.startswith('error:'):
+            if not self.gcode_error:
+                self.gcode_error = line
             print(line)
 
     def close(self):
@@ -65,6 +68,11 @@ class SerialManagerClass:
 
     def is_connected(self):
         return bool(self.gcode_tcp)
+
+    def pop_gcode_error(self):
+        error = self.gcode_error
+        self.gcode_error = ''
+        return error
 
     def get_hardware_status(self):
         if time.time() - self.last_poll > 0.1:
