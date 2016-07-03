@@ -1,7 +1,7 @@
 'use strict';
 
-var app = angular.module("RasterApp", [])
-app.controller('RasterController', function ($scope) {
+angular.module('app.raster', ['app.core'])
+.controller('RasterController', function ($scope) {
     const LASER_POWER = 100.0; // watts
     const RASTER_BYTES_MAX = 60;
     const PULSE_SECONDS = 31.875e-6;  // see laser.c

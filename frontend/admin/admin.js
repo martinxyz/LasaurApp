@@ -1,7 +1,7 @@
 'use strict';
 
-var app = angular.module("LasaurAdmin", ['ui.bootstrap', 'angularSpinner', 'angular-websocket'])
-app.controller('AdminController', function ($scope, $http, $websocket, $log, $interval) {
+angular.module('app.admin', ['app.core'])
+.controller('AdminController', function ($scope, $http, $websocket, $log, $interval) {
     var vm = this;
 
     vm.firmware_version = 'not asked yet';

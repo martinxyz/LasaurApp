@@ -23,10 +23,6 @@ class Application(tornado.web.Application):
             (r"/status/ws", web.StatusWebsocket, dict(board=board)),
             (r"/firmware/(build|flash|flash_release|reset)", web.FirmwareHandler, dict(board=board, conf=conf)),
             (r"/config", web.ConfigHandler, dict(board=board, conf=conf)),
-            (r"/raster/(.*)", tornado.web.StaticFileHandler, {
-                "path": "../frontend/raster",
-                "default_filename": "index.html"
-            }),
             (r"/(.*)", tornado.web.StaticFileHandler, {
                 "path": "../frontend/admin",
                 "default_filename": "index.html"
