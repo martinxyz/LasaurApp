@@ -320,8 +320,12 @@ $(document).ready(function(){
         previous_error_report = data.error_report;
         if (data.error_report) {
           $().uxmessage('error', 'Error: ' + data.error_report);
+          $("#tab_logs_span").addClass("label label-warning");
+          $("#cancel_btn").addClass("btn-info");
         } else {
           $().uxmessage('success', 'Error resolved');
+          $("#tab_logs_span").removeClass("label label-warning");
+          $("#cancel_btn").removeClass("btn-info");
         }
       }
       // schedule next hardware poll
