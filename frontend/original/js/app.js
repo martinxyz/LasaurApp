@@ -221,6 +221,20 @@ $(document).ready(function(){
     
   // get hardware status
   function poll_hardware_status() {
+    function report_error(error_report) {
+      if (error_report != previous_error_report) {
+        previous_error_report = error_report;
+        if (error_report) {
+          $().uxmessage('error', 'Error: ' + error_report);
+          $("#tab_logs_span").addClass("label label-warning");
+          $("#cancel_btn").addClass("btn-info");
+        } else {
+          $().uxmessage('success', 'Error resolved');
+          $("#tab_logs_span").removeClass("label label-warning");
+          $("#cancel_btn").removeClass("btn-info");
+        }
+      }
+    }
     $.getJSON('/status', function(data) {
       // pause status
       if (data.paused) {
@@ -316,22 +330,12 @@ $(document).ready(function(){
         $('#lasaurapp_version').html(data.lasaurapp_version);
         lasaurapp_version_reported = true;
       }
-      if (data.error_report != previous_error_report) {
-        previous_error_report = data.error_report;
-        if (data.error_report) {
-          $().uxmessage('error', 'Error: ' + data.error_report);
-          $("#tab_logs_span").addClass("label label-warning");
-          $("#cancel_btn").addClass("btn-info");
-        } else {
-          $().uxmessage('success', 'Error resolved');
-          $("#tab_logs_span").removeClass("label label-warning");
-          $("#cancel_btn").removeClass("btn-info");
-        }
-      }
+      report_error(data.error_report);
       // schedule next hardware poll
       setTimeout(function() {poll_hardware_status()}, 300);
-    }).error(function() {
+    }).fail(function() {
       // lost connection to server
+      report_error("connection to backend webserver lost");
       connect_btn_set_state(false);
       // schedule next hardware poll
       setTimeout(function() {poll_hardware_status()}, 1000);
