@@ -1,23 +1,40 @@
 <div class="container" ng-controller="RasterController">
   <div class="row">
-    <h1>Raster Test</h1>
-    <form>
-      <label class="btn btn-lg btn-primary btn-file">
-        Open... <input type="file" accept=".png,.jpg,.jpeg,.bmp" style="display: none;">
-      </label>
-      PNG, JPEG, BMP
-      <br/>
-    </form>
-    <form>
+    <h1>PulseRaster <small>experimental</small></h1>
+    <div class="well">
+      <form class="form-horizontal" role="form">
+        <label class="btn btn-lg btn-primary btn-file">
+          Open... <input type="file" accept=".png,.jpg,.jpeg,.bmp" style="display: none;">
+        </label>
+        <p class="help-block">PNG, JPEG, BMP</p>
+        <br/>
+      </form>
       {{img_w}} x {{img_h}} pixels
-      <fieldset class="form-group">
-        Energy Density: <input type="number" min="0" step="0.1" ng-model="energy_density" ng-change="recalculate()"> energy per mm^2
-      </fieldset>
-      <fieldset class="form-group">
-        Pulses per mm: <input type="number" min="0" step="2.0" ng-model="requested_ppmm" ng-change="recalculate()"> (note: will only be approximated)
-      </fieldset>
-      Selected pulse duration: {{actual_pulse}} ticks ({{pulse_duration_us()|number:0}} microseconds)<br/>
-      Actually doing {{actual_ppmm|number:1}} pulses per mm (requested: {{requested_ppmm|number:1}})<br/>
-    </form>
+    </div>
+
+    <div class="well">
+      <div class="panel-body">
+        <form class="form-horizontal" role="form">
+          <div class="form-group form-group-lg">
+            <label class="col-sm-3 control-label" for="power">Power</label>
+            <div class="col-sm-3">
+              <input class="form-control input-lg" id="power" type="number" min="0" step="0.1" ng-model="energy_density" ng-change="recalculate()">
+              <span class="help-block">energy per mm^2</span>
+            </div>
+
+          </div>
+          <div class="form-group" role="form">
+            <label class="col-sm-3 control-label" for="ppmm">Pulses per mm</label>
+            <div class="col-sm-3">
+              <input class="form-control" id="ppmm" type="number" min="0" step="2.0" ng-model="requested_ppmm" ng-change="recalculate()">
+            </div>
+          </div>
+          Selected pulse duration: {{actual_pulse}} ticks ({{pulse_duration_us()|number:0}} microseconds)<br/>
+          Actually doing {{actual_ppmm|number:1}} pulses per mm (requested: {{requested_ppmm|number:1}})<br/>
+        </form>
+      </div>
+    </div>
   </div>
+</div>
+
 </div>
