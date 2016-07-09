@@ -185,7 +185,7 @@ class DriveboardGcode:
                 return 'error:invalid intensity %r' % line
             if intensity < 0 or intensity > 255:
                 return 'error:intensity out of range (0-255) %r' % line
-            frequency, duration = pulseraster.intensity2pulse(intensity / 255.0)
+            frequency, duration = pulseraster.intensity2pulse(intensity)
             params.append(('PARAM_PULSE_FREQUENCY', frequency))
             params.append(('PARAM_PULSE_DURATION', duration))
 
