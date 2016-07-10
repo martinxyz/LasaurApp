@@ -437,12 +437,14 @@ void protocol_idle() {
     if (SENSE_Y2_LIMIT && stop_code != STOPERROR_LIMIT_HIT_Y2) {
       serial_write(STOPERROR_LIMIT_HIT_Y2);
     }
+#ifdef ENABLE_3AXES
     if (SENSE_Z1_LIMIT && stop_code != STOPERROR_LIMIT_HIT_Z1) {
       serial_write(STOPERROR_LIMIT_HIT_Z1);
     }
     if (SENSE_Z2_LIMIT && stop_code != STOPERROR_LIMIT_HIT_Z2) {
       serial_write(STOPERROR_LIMIT_HIT_Z2);
     }
+#endif
 #endif
 
     // position, an absolute coord, report relative to current offset

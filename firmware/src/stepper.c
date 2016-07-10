@@ -242,7 +242,8 @@ ISR(TIMER1_COMPA_vect) {
     }else if (SENSE_Y2_LIMIT) {
       stepper_request_stop(STOPERROR_LIMIT_HIT_Y2);
       busy = false;
-      return; 
+      return;
+#ifdef ENABLE_3AXES
     } else if (SENSE_Z1_LIMIT) {
       stepper_request_stop(STOPERROR_LIMIT_HIT_Z1);
       busy = false;
@@ -250,7 +251,8 @@ ISR(TIMER1_COMPA_vect) {
     } else if (SENSE_Z2_LIMIT) {
       stepper_request_stop(STOPERROR_LIMIT_HIT_Z2);
       busy = false;
-      return; 
+      return;
+#endif
     }  
   #endif
 
