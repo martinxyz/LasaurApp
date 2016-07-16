@@ -1,36 +1,45 @@
-<div class="container" ng-controller="RasterController">
+<div class="container" ng-controller="RasterController as vm">
   <div class="row">
     <h1>PulseRaster <small>experimental</small></h1>
     <div class="well">
+
       <form class="form-horizontal" role="form">
-        <label class="btn btn-lg btn-primary btn-file">
-          Open... <input type="file" accept=".png,.jpg,.jpeg,.bmp" style="display: none;">
+        <label style="width:150px; height:150px; border:1px; background-color:#FFF; cursor:pointer;">
+          <span ng-hide="vm.uploadedImage">Open...</span>
+          <canvas id="preview-canvas" width="150" height="150" ng-show="vm.uploadedImage"></canvas>
+          <!-- <image ng-show="vm.uploadedImage" id="preview-image" width="150" height="150"></image> -->
+          <!-- <input type="file" fileread="vm.uploadedImage" accept="image/*" style="display: none;"> -->
+          <input id="file-input" type="file" accept="image/*" style="display: none;">
         </label>
-        <p class="help-block">PNG, JPEG, BMP</p>
         <br/>
       </form>
-      {{img_w}} x {{img_h}} pixels
+
+      <span ng-show="vm.uploadedImage">
+        {{vm.uploadedImage.width}} x {{vm.uploadedImage.height}} pixels
+      </span>
+
     </div>
 
+    <!-- <canvas id="preview-canvas" ng-show="vm.uploadedImage"></canvas> -->
+    
     <div class="well">
       <div class="panel-body">
         <form class="form-horizontal" role="form">
           <div class="form-group form-group-lg">
             <label class="col-sm-3 control-label" for="power">Power</label>
             <div class="col-sm-3">
-              <input class="form-control input-lg" id="power" type="number" min="0" step="0.1" ng-model="energy_density" ng-change="recalculate()">
+              <input class="form-control input-lg" id="power" type="number" min="0" step="0.1" ng-model="vm.energy_density" ng-change="recalculate()">
               <span class="help-block">energy per mm^2</span>
             </div>
-
           </div>
           <div class="form-group" role="form">
             <label class="col-sm-3 control-label" for="ppmm">Pulses per mm</label>
             <div class="col-sm-3">
-              <input class="form-control" id="ppmm" type="number" min="0" step="2.0" ng-model="requested_ppmm" ng-change="recalculate()">
+              <input class="form-control" id="ppmm" type="number" min="0" step="2.0" ng-model="vm.requested_ppmm" ng-change="recalculate()">
             </div>
           </div>
-          Selected pulse duration: {{actual_pulse}} ticks ({{pulse_duration_us()|number:0}} microseconds)<br/>
-          Actually doing {{actual_ppmm|number:1}} pulses per mm (requested: {{requested_ppmm|number:1}})<br/>
+          Selected pulse duration: {{vm.actual_pulse}} ticks ({{vm.pulse_duration_us()|number:0}} microseconds)<br/>
+          Actually doing {{vm.actual_ppmm|number:1}} pulses per mm (requested: {{vm.requested_ppmm|number:1}})<br/>
         </form>
       </div>
     </div>

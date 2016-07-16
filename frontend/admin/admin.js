@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('app.admin', ['app.core'])
-.controller('AdminController', function ($scope, $http, $websocket, $log, $interval) {
+.controller('AdminController', function ($http, $websocket, $log, $interval) {
     var vm = this;
 
     vm.firmware_version = 'not asked yet';
@@ -78,8 +78,6 @@ angular.module('app.admin', ['app.core'])
 
     $http.get('/config').then(function(response) {
         var config = response.data;
-        //$scope.work_area_width = config.workspace[0];
-        //$scope.work_area_height = config.workspace[1];
         vm.config = config;
     });
 });

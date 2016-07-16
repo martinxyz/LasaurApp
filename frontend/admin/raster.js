@@ -1,7 +1,9 @@
 'use strict';
 
 angular.module('app.raster', ['app.core'])
-.controller('RasterController', function ($scope) {
+.controller('RasterController', function ($scope, RasterLib) {
+    var vm = this;
+
     const LASER_POWER = 100.0; // watts
     const RASTER_BYTES_MAX = 60;
     const PULSE_SECONDS = 31.875e-6;  // see laser.c
@@ -9,20 +11,24 @@ angular.module('app.raster', ['app.core'])
     const MAXIMUM_PULSE_TICKS = 127;  // unit: PULSE_SECONDS
     const ACCELERATION = 1800000.0    // mm/min^2, divide by (60*60) to get mm/sec^2
 
-    $scope.energy_density = 5.3;
-    $scope.img_w = 200;
-    $scope.img_h = 250;
+    vm.uploadedImage = null;
 
-    $scope.requested_ppmm = 20.0;
+    vm.energy_density = 5.3;
+    vm.img_w = 0;
+    vm.img_h = 0;
 
-    $scope.actual_ppmm = null;
-    $scope.actual_pulse = null;
+    vm.requested_ppmm = 20.0;
 
-    $scope.pulse_duration_us = function() {
-        return $scope.actual_pulse * PULSE_SECONDS / 1e-6;
+    vm.haveImage = false;
+
+    vm.actual_ppmm = null;
+    vm.actual_pulse = null;
+
+    vm.pulse_duration_us = function() {
+        return vm.actual_pulse * PULSE_SECONDS / 1e-6;
     }
 
-    $scope.recalculate = function() {
+    vm.recalculate = function() {
         // Current method: (optimized towards bi-level images)
         // - choose a pulse_duration
         // - adjust ppmm such that black pixels have the correct energy_density
@@ -38,9 +44,9 @@ angular.module('app.raster', ['app.core'])
         for (var pulse = MINIMUM_PULSE_TICKS; pulse <= MAXIMUM_PULSE_TICKS; pulse++) {
             var pulse_duration = pulse * PULSE_SECONDS;
             var energy_per_pulse = pulse_duration * LASER_POWER;  // joules
-            var pulse_density = $scope.energy_density / energy_per_pulse;
+            var pulse_density = vm.energy_density / energy_per_pulse;
             var ppmm = Math.sqrt(pulse_density);
-            var error = Math.abs($scope.requested_ppmm - ppmm);
+            var error = Math.abs(vm.requested_ppmm - ppmm);
             if (pulse === MINIMUM_PULSE_TICKS || error < best_error) {
                 best_pulse = pulse;
                 best_ppmm = ppmm;
@@ -48,8 +54,8 @@ angular.module('app.raster', ['app.core'])
             }
         }
 
-        $scope.actual_ppmm = best_ppmm;
-        $scope.actual_pulse =  best_pulse;
+        vm.actual_ppmm = best_ppmm;
+        vm.actual_pulse =  best_pulse;
 
         /*
         error = np.abs(ppmm - s.ppmm)
@@ -77,7 +83,47 @@ angular.module('app.raster', ['app.core'])
         */
     }
 
-    $scope.recalculate();
+    vm.recalculate();
+
+
+
+    var preview_canvas = document.getElementById('preview-canvas');
+    var preview_canvas_ctx = preview_canvas.getContext('2d');
+
+    document.getElementById('file-input').addEventListener('change', onFileChanged, false);
+    function onFileChanged(changeEvent) {
+        var reader = new FileReader();
+        reader.onload = function (loadEvent) {
+            var img = new Image();
+            img.onload = function(){
+                $scope.$apply(function() {
+                    vm.uploadedImage = img;
+                    RasterLib.setImage(img);
+                    RasterLib.process();
+                    updatePreview();
+                });
+            }
+            img.src = event.target.result;
+        }
+        reader.readAsDataURL(changeEvent.target.files[0]);
+    }
+
+    function updatePreview() {
+        var src = RasterLib.grayCanvas;
+        var w = src.width;
+        var h = src.height;
+        var cw = preview_canvas.width;
+        var ch = preview_canvas.height;
+        var ctx = preview_canvas_ctx;
+
+        var scale = Math.min(cw/w, ch/h);
+
+        ctx.clearRect(0, 0, cw, ch);
+        ctx.save();
+        ctx.scale(scale, scale);
+        ctx.drawImage(src, 0, 0);
+        ctx.restore();
+    }
+
 
 })
-
