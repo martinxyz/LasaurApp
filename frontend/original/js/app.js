@@ -64,12 +64,12 @@ function send_gcode(gcode, success_msg, progress) {
         // dataType: "json",
         success: function (data) {
           if (data == "__ok__") {
-            if (previous_error_report) {
+            if (previous_error_report && gcode[0] != '!' && gcode[0] != '~') {
               $().uxmessage('error', 'Error unresolved: ' + previous_error_report);
             }
             $().uxmessage('success', success_msg);
 
-            if (progress = true) {
+            if (progress == true) {
               // show progress bar, register live updates
               if ($("#progressbar").children().first().width() == 0) {
                 $("#progressbar").children().first().width('5%');

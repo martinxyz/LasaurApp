@@ -315,6 +315,8 @@ def get_status():
     status = copy.deepcopy(SerialManager.get_hardware_status())
     status['serial_connected'] = SerialManager.is_connected()
     status['lasaurapp_version'] = VERSION
+    # FIXME: if more than one frontend is running, the error is reported
+    #        only to one (not always the one who sent the offending gcode)
     status['gcode_error'] = SerialManager.pop_gcode_error()
     return json.dumps(status)
 
