@@ -79,6 +79,10 @@ class Driveboard:
         polling_interval = 100  # milliseconds
         PeriodicCallback(self._status_timer_cb, polling_interval).start()
 
+        # for stop/resume timing
+        self.fw_stopped = False
+        self.fw_resuming = False
+
         # initialize self.status
         self._update_status()
 
@@ -241,12 +245,22 @@ class Driveboard:
         self._update_status(self.status_raw)
         self.status_raw.clear()
 
-        if self.status['stops']:
-            # We flush our queue; the firmware will do the same while stopped.
+        if self.fw_resuming:
+            # The firmware may report "stopped" status once more after
+            # we sent CMD_RESUME if it hasn't received CMD_RESUME yet.
             #
-            # If we did not flush it, it could take several seconds
+            # We do not want to discard any commands directly after
+            # CMD_RESUME (e.g. CMD_HOMING) from the queue.
+            self.fw_resuming = False
+        else:
+            self.fw_stopped = bool(self.status['stops'])
+
+        if self.fw_stopped:
+            # We discard our queue; the firmware will do the same while stopped.
+            #
+            # If we did not discard it, it could take several seconds
             # until the whole job is fully sent over the serial port
-            # and discarded by the firmware. The user might then press
+            # and discarded by the firmware. The user might press
             # "resume" while old commands are still being sent.
             self.firmbuf_queue.clear()
 
@@ -328,7 +342,7 @@ class Driveboard:
             stops = self.status['stops']
             report = 'stopped - ' + stops[0]
             if len(stops) > 1:
-                report += ' (and later also ' + ' '.join(stops[1:]) + ')'
+                report += ' (and also ' + ' '.join(stops[1:]) + ')'
         self.status['error_report'] = report
 
         # TODO maybe: push notifications to websocket right away
@@ -338,6 +352,8 @@ class Driveboard:
         if cmd < 32:
             # controls chars, handled directly in the serial ISR (not buffered)
             if cmd == CMD_RESUME:
+                self.fw_stopped = False
+                self.fw_resuming = True
                 if self.status.get('STOPERROR_RX_BUFFER_OVERFLOW') or \
                   self.status.get('STOPERROR_TRANSMISSION_ERROR'):
                   # need to fix the buffer tracking first
@@ -361,8 +377,10 @@ class Driveboard:
         self._send_fwbuf(data)
 
     def _send_fwbuf(self, data=b''):
-        if self.status['stops']:
-            return  # while stopped, the firmware also discards all queued bytes
+        if self.fw_stopped:
+            # while stopped, the firmware will discard all queued
+            # bytes anyway; keep the queues empty for clean resume
+            return
         self.firmbuf_queue += data
         if self.paused:
             return
