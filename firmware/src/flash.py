@@ -3,13 +3,13 @@
 
 import os, sys, subprocess
 
-def run(s):
-    print(s)
-    subprocess.check_call(s, shell=True)
+def run(args):
+    print(*args)
+    subprocess.check_call(args)
 
-os.chdir('../../backend')
+# os.chdir('../../backend')
 try:
-    run('python build.py')
-    run('python flash.py')
+    run(['python3', '../../backend/build.py'] + sys.argv[1:])
+    run(['python3', '../../backend/flash.py'] + sys.argv[1:])
 except subprocess.CalledProcessError:
     sys.exit(1)
