@@ -4,7 +4,8 @@ var firmware_version_reported = false;
 var lasaurapp_version_reported = false;
 var progress_not_yet_done_flag = false;
 var previous_error_report = '';
-
+var stop_and_resume_in_progress = false;
+var last_command_was_homing = false;
 
 (function($){
   $.fn.uxmessage = function(kind, text, max_length) {
@@ -53,6 +54,11 @@ var previous_error_report = '';
 
 
 function send_gcode(gcode, success_msg, progress) {
+  if (gcode.indexOf('G30\n') !== -1) {
+    last_command_was_homing = true;
+  } else {
+    last_command_was_homing = false;
+  }
   // if (hardware_ready_state || gcode[0] == '!' || gcode[0] == '~') {
   if (true) {
     if (typeof gcode === "string" && gcode != '') {
@@ -228,10 +234,12 @@ $(document).ready(function(){
           $().uxmessage('error', 'Error: ' + error_report);
           $("#tab_logs_span").addClass("label label-warning");
           $("#cancel_btn").addClass("btn-info");
+          $("#homing_cycle").addClass("btn-info");
         } else {
           $().uxmessage('success', 'Error resolved');
           $("#tab_logs_span").removeClass("label label-warning");
           $("#cancel_btn").removeClass("btn-info");
+          $("#homing_cycle").removeClass("btn-info");
         }
       }
     }
@@ -330,7 +338,20 @@ $(document).ready(function(){
         $('#lasaurapp_version').html(data.lasaurapp_version);
         lasaurapp_version_reported = true;
       }
-      report_error(data.error_report);
+      var msg = data.error_report;
+      if (stop_and_resume_in_progress) {
+        // known cause, don't report
+        if (msg === 'stopped - serial_stop_request') {
+          msg = '';
+        }
+      }
+      if (last_command_was_homing) {
+        // known cause, no status updates during homing
+        if (msg === 'last status update from driveboard is too old') {
+          msg = '';
+        }
+      }
+      report_error(msg);
       // schedule next hardware poll
       setTimeout(function() {poll_hardware_status()}, 300);
     }).fail(function() {
@@ -429,6 +450,7 @@ $(document).ready(function(){
   
   $("#cancel_btn").tooltip({placement:'bottom', delay: {show:500, hide:100}});
   $("#cancel_btn").click(function(e){
+    stop_and_resume_in_progress = true;
     var gcode = '!\n'  // ! is enter stop state char
     // $().uxmessage('notice', gcode.replace(/\n/g, '<br>'));
     send_gcode(gcode, "Stopping ...", false); 
@@ -436,19 +458,24 @@ $(document).ready(function(){
       var gcode = '~\nG90\nG0X0Y0F'+app_settings.max_seek_speed+'\nM81\n'  // ~ is resume char
       // $().uxmessage('notice', gcode.replace(/\n/g, '<br>'));
       send_gcode(gcode, "Resetting ...", false);
+      setTimeout(function() { stop_and_resume_in_progress = false; }, 1000);
     }, 1000);
     e.preventDefault();   
   });
   
   $("#homing_cycle").tooltip({placement:'bottom', delay: {show:500, hide:100}});
   $("#homing_cycle").click(function(e){
+    stop_and_resume_in_progress = true;
     var gcode = '!\n'  // ! is enter stop state char
     // $().uxmessage('notice', gcode.replace(/\n/g, '<br>'));
-    send_gcode(gcode, "Resetting ...", false); 
+    send_gcode(gcode, "Resetting ...", false);
     var delayedresume = setTimeout(function() {
       var gcode = '~\nG30\n'  // ~ is resume char
       // $().uxmessage('notice', gcode.replace(/\n/g, '<br>'));
       send_gcode(gcode, "Homing cycle ...", false);
+      setTimeout(function() {
+        stop_and_resume_in_progress = false;
+      }, 1000);
     }, 1000);
     e.preventDefault(); 
 
