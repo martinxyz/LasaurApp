@@ -1,49 +1,64 @@
 <div class="container" ng-controller="RasterController as vm">
-  <div class="row">
-    <h1>PulseRaster <small>experimental</small></h1>
-    <div class="well">
 
-      <form class="form-horizontal" role="form">
-        <label style="width:150px; height:150px; border:1px; background-color:#FFF; cursor:pointer;">
-          <span ng-hide="vm.uploadedImage">Open...</span>
-          <canvas id="preview-canvas" width="150" height="150" ng-show="vm.uploadedImage"></canvas>
-          <!-- <image ng-show="vm.uploadedImage" id="preview-image" width="150" height="150"></image> -->
-          <!-- <input type="file" fileread="vm.uploadedImage" accept="image/*" style="display: none;"> -->
-          <input id="file-input" type="file" accept="image/*" style="display: none;">
-        </label>
-        <br/>
-      </form>
+  <h1>PulseRaster <small>experimental</small></h1>
+  <div class="well">
+    <div class="row">
+      <div class="col-md-4">
+        <form class="preview-frame">
+          <label class="open-image">
+            <span class="open-image-text text-muted" ng-hide="vm.uploadedImage">
+              Select...
+            </span>
+            <canvas id="preview-canvas" ng-show="vm.uploadedImage"></canvas>
+            <!-- <image ng-show="vm.uploadedImage" id="preview-image" width="150" height="150"></image> -->
+            <!-- <input type="file" fileread="vm.uploadedImage" accept="image/*" style="display: none;"> -->
+            <input id="file-input" type="file" accept="image/*" style="display: none;">
+          </label>
+        </form>
+        <div ng-show="vm.uploadedImage" class="text-center">
+          {{vm.uploadedImage.width}} x {{vm.uploadedImage.height}} pixels
+        </div>
+      </div>
 
-      <span ng-show="vm.uploadedImage">
-        {{vm.uploadedImage.width}} x {{vm.uploadedImage.height}} pixels
-      </span>
-
+      <div class="col-md-4">
+        <canvas ng-show="vm.uploadedImage" class="preview-frame" id="preview-pulse-canvas"></canvas>
+      </div>
+      
     </div>
 
+  </div>
+  <div class="row">
+
+    <!-- <canvas id="dummy" width="150" height="150"></canvas>
+       -->
     <!-- <canvas id="preview-canvas" ng-show="vm.uploadedImage"></canvas> -->
-    
+
     <div class="well">
       <div class="panel-body">
         <form class="form-horizontal" role="form">
           <div class="form-group form-group-lg">
-            <label class="col-sm-3 control-label" for="power">Power</label>
-            <div class="col-sm-3">
-              <input class="form-control input-lg" id="power" type="number" min="0" step="0.1" ng-model="vm.energy_density" ng-change="recalculate()">
-              <span class="help-block">energy per mm^2</span>
+            <label class="col-md-3 control-label" for="power">Power</label>
+            <div class="col-md-3">
+              <input class="form-control input-lg" id="power" type="number" min="0" step="0.1" ng-model="vm.params.energy_density" ng-change="vm.recalculate()">
+              <span class="help-block">energy per mm²</span>
             </div>
           </div>
           <div class="form-group" role="form">
-            <label class="col-sm-3 control-label" for="ppmm">Pulses per mm</label>
-            <div class="col-sm-3">
-              <input class="form-control" id="ppmm" type="number" min="0" step="2.0" ng-model="vm.requested_ppmm" ng-change="recalculate()">
+            <label class="col-md-3 control-label" for="width">Width (mm)</label>
+            <div class="col-md-3">
+              <input class="form-control" id="width" type="number" min="0.1" ng-model="vm.params.width" ng-change="vm.recalculate()">
             </div>
           </div>
-          Selected pulse duration: {{vm.actual_pulse}} ticks ({{vm.pulse_duration_us()|number:0}} microseconds)<br/>
-          Actually doing {{vm.actual_ppmm|number:1}} pulses per mm (requested: {{vm.requested_ppmm|number:1}})<br/>
+          <div class="form-group" role="form">
+            <label class="col-md-3 control-label" for="ppmm">Pulses per mm</label>
+            <div class="col-md-3">
+              <input class="form-control" id="ppmm" type="number" min="0" step="0.5" ng-model="vm.requested_ppmm" ng-change="vm.recalculate()">
+            </div>
+          </div>
+          Selected pulse duration: {{vm.params.pulse}} ticks ({{vm.pulse_duration_us()|number:0}} microseconds)<br/>
+          Actually doing {{vm.params.ppmm|number:1}} pulses per mm (requested: {{vm.requested_ppmm|number:1}})<br/>
         </form>
       </div>
     </div>
   </div>
-</div>
-
 </div>

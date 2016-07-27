@@ -1,0 +1,23 @@
+.navbar {
+    margin-bottom: 0;
+    border-radius: 0;
+}
+
+.preview-frame {
+    width: 306px;
+    height: 306px;
+    border: 3px solid #CA8;
+    background: white;
+}
+
+.open-image {
+    background-color: #FFF;
+    cursor: pointer;
+    display: block;
+    height: 300px;
+}
+
+.open-image-text {
+    font-size: 25px;
+    margin: 0.3em;
+}
