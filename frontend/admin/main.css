@@ -10,6 +10,12 @@
     background: white;
 }
 
+.preview-subtext {
+    width: 306px;
+    display: block;
+    text-align: center;
+}
+
 .open-image {
     background-color: #FFF;
     cursor: pointer;
@@ -21,3 +27,4 @@
     font-size: 25px;
     margin: 0.3em;
 }
+

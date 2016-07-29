@@ -10,22 +10,37 @@ angular.module('app.raster', ['app.core'])
     const MINIMUM_PULSE_TICKS = 3;    // unit: PULSE_SECONDS
     const MAXIMUM_PULSE_TICKS = 127;  // unit: PULSE_SECONDS
     const ACCELERATION = 1800000.0    // mm/min^2, divide by (60*60) to get mm/sec^2
+    const BAUDRATE = 57600;
 
     vm.uploadedImage = null;
 
-    vm.energy_density = 5.3;
     vm.img_w = 0;
     vm.img_h = 0;
 
-    vm.requested_ppmm = 20.0;
-
     vm.haveImage = false;
 
-    vm.actual_ppmm = null;
-    vm.actual_pulse = null;
+    vm.requested_ppmm = 18.0;
+    vm.requested_pulse = null;
+    vm.max_feedrate = 8000;
+    vm.max_intensity = 80;
+
+    vm.params = {
+        // set directly
+        width: 20.0,
+        energy_density: 0.7,
+        binary: false,
+        bidirectional: false,
+        skip_empty: true,
+        lead_in: 2.0,
+        pos_x: 0.0,
+        pos_y: 0.0,
+        // calculated
+        ppmm: null,
+        feedrate: null
+    }
 
     vm.pulse_duration_us = function() {
-        return vm.actual_pulse * PULSE_SECONDS / 1e-6;
+        return vm.params.pulse * PULSE_SECONDS / 1e-6;
     }
 
     vm.recalculate = function() {
@@ -41,10 +56,11 @@ angular.module('app.raster', ['app.core'])
         var best_pulse;
         var best_ppmm;
         var best_error;
+        var params = vm.params;
         for (var pulse = MINIMUM_PULSE_TICKS; pulse <= MAXIMUM_PULSE_TICKS; pulse++) {
             var pulse_duration = pulse * PULSE_SECONDS;
             var energy_per_pulse = pulse_duration * LASER_POWER;  // joules
-            var pulse_density = vm.energy_density / energy_per_pulse;
+            var pulse_density = params.energy_density / energy_per_pulse;
             var ppmm = Math.sqrt(pulse_density);
             var error = Math.abs(vm.requested_ppmm - ppmm);
             if (pulse === MINIMUM_PULSE_TICKS || error < best_error) {
@@ -54,41 +70,36 @@ angular.module('app.raster', ['app.core'])
             }
         }
 
-        vm.actual_ppmm = best_ppmm;
-        vm.actual_pulse =  best_pulse;
+        vm.params.pulse = best_pulse;
+        vm.params.ppmm = best_ppmm;
 
-        /*
-        error = np.abs(ppmm - s.ppmm)
-        i = np.argmin(error)
-        pulse = pulse[i]
-        ppmm = ppmm[i]
-        print 'desired ppmm %.3f, actual ppmm %.3f, pulse %d (%.0f us)' % (s.ppmm, ppmm, pulse, pulse * b.PULSE_SECONDS / 1e-6)
-
-        feedrate = s.max_feedrate
+        var feedrate = vm.max_feedrate;
 
         // limit feedrate such that max_intensity is respected
-        feedrate_max = s.max_intensity/100.0 / (ppmm * (pulse * b.PULSE_SECONDS)) * 60
-        print 'feedrate limit because of max_intensity: %.0f mm/min' % feedrate_max
-        feedrate = min(feedrate, feedrate_max)
+        var feedrate_limit1 = params.max_intensity/100.0 / (ppmm * (pulse * PULSE_SECONDS)) * 60;
+        feedrate = Math.min(feedrate, feedrate_limit1);
 
         // limit feedrate such that the driveboard will not slow down to wait for serial data
-        byte_per_second = conf['baudrate']/10/2 # (8 bits + startbit + stopbit) and every byte is sent twice (error detection)
-        byte_per_second *= 0.5 # leave some room for parameters and line commands
-        feedrate_max = byte_per_second / ppmm * 60.0
-        print 'feedrate limit because of baudrate limit: %.0f mm/min' % feedrate_max
-        feedrate = min(feedrate, feedrate_max)
+        var byte_per_second = BAUDRATE/10/2;  // (8 bits + startbit + stopbit) and every byte is sent twice (error detection)
+        byte_per_second *= 0.5  // leave some room for parameters and line commands (just a rough guess)
+        var feedrate_limit2 = byte_per_second / ppmm * 60.0
+        feedrate = Math.min(feedrate, feedrate_limit2);
 
-        print 'feedrate %.0f' % feedrate
-        print 'intensity (or duty) for full black: %.1f%%' % (ppmm * (pulse * b.PULSE_SECONDS) * (feedrate / 60) * 100)
-        */
+        vm.params.feedrate = feedrate;
+
+        // vm.actual_intensity = ppmm * (pulse * PULSE_SECONDS) * (feedrate / 60) * 100;
+
+        RasterLib.makeGrayScale();
+        RasterLib.makePulseImage(vm.params);
+        updatePulsePreview();
+        updateGrayScalePreview();
     }
-
-    vm.recalculate();
-
-
 
     var preview_canvas = document.getElementById('preview-canvas');
     var preview_canvas_ctx = preview_canvas.getContext('2d');
+
+    var preview_pulse_canvas = document.getElementById('preview-pulse-canvas');
+    var preview_pulse_canvas_ctx = preview_pulse_canvas.getContext('2d');
 
     document.getElementById('file-input').addEventListener('change', onFileChanged, false);
     function onFileChanged(changeEvent) {
@@ -98,9 +109,6 @@ angular.module('app.raster', ['app.core'])
             img.onload = function(){
                 $scope.$apply(function() {
                     vm.uploadedImage = img;
-                    RasterLib.setImage(img);
-                    RasterLib.process();
-                    updatePreview();
                 });
             }
             img.src = event.target.result;
@@ -108,7 +116,15 @@ angular.module('app.raster', ['app.core'])
         reader.readAsDataURL(changeEvent.target.files[0]);
     }
 
-    function updatePreview() {
+    $scope.$watch('vm.uploadedImage', function(newValue) {
+        if (newValue) {
+            RasterLib.setImage(newValue);
+            vm.recalculate();
+        }
+    });
+
+    function updateGrayScalePreview() {
+        console.log('updateGrayScalePreview');
         var src = RasterLib.grayCanvas;
         var w = src.width;
         var h = src.height;
@@ -125,5 +141,19 @@ angular.module('app.raster', ['app.core'])
         ctx.restore();
     }
 
-
+    function updatePulsePreview() {
+        console.log('updatePulsePreview');
+        var src = RasterLib.pulseCanvas;
+        //var w = src.width;
+        //var h = src.height;
+        var cw = preview_pulse_canvas.width;
+        var ch = preview_pulse_canvas.height;
+        var ctx = preview_pulse_canvas_ctx;
+        ctx.clearRect(0, 0, cw, ch);
+        ctx.save();
+        ctx.scale(3, 3);
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(src, 0, 0);
+        ctx.restore();
+    }
 })
