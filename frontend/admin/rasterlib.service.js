@@ -24,7 +24,9 @@ angular.module('app.raster')
         var h = sourceImg.height;
         console.log('makeGrayScale ' + w + ', ' + h);
 
-        // note: SVGs have some arbitrary width/height set by the browser, if we override it here the browser will vector-zoom
+        // note: for SVGs we have some arbitrary width/height set by
+        // the browser, if we did override it here the browser would
+        // vector-zoom
         grayCanvas.width = w;
         grayCanvas.height = h;
         var ctx = grayCanvas.getContext('2d');

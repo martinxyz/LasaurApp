@@ -95,65 +95,62 @@ angular.module('app.raster', ['app.core'])
         updateGrayScalePreview();
     }
 
-    var preview_canvas = document.getElementById('preview-canvas');
-    var preview_canvas_ctx = preview_canvas.getContext('2d');
-
-    var preview_pulse_canvas = document.getElementById('preview-pulse-canvas');
-    var preview_pulse_canvas_ctx = preview_pulse_canvas.getContext('2d');
+    vm.canvas_gray = null;
+    vm.canvas_pulse = null;
 
     document.getElementById('file-input').addEventListener('change', onFileChanged, false);
     function onFileChanged(changeEvent) {
         var reader = new FileReader();
-        reader.onload = function (loadEvent) {
+        reader.onload = fileLoaded;
+        reader.readAsDataURL(changeEvent.target.files[0]);
+        function fileLoaded(loadEvent) {
             var img = new Image();
-            img.onload = function(){
+            img.onload = imageLoaded;
+            img.src = event.target.result;
+            function imageLoaded() {
                 $scope.$apply(function() {
-                    vm.uploadedImage = img;
+                    setImage(img);
                 });
             }
-            img.src = event.target.result;
         }
-        reader.readAsDataURL(changeEvent.target.files[0]);
     }
 
-    $scope.$watch('vm.uploadedImage', function(newValue) {
-        if (newValue) {
-            RasterLib.setImage(newValue);
-            vm.recalculate();
+    // for development/debugging
+    function debugInit() {
+        var img = new Image();
+        img.onload = imageLoaded;
+        img.src = 'img.jpg';
+        function imageLoaded() {
+            $scope.$apply(function() {
+                setImage(img);
+            });
         }
-    });
+    }
+    debugInit();
+
+    function setImage(img) {
+        vm.uploadedImage = img;
+        RasterLib.setImage(img);
+        vm.recalculate();
+    }
 
     function updateGrayScalePreview() {
         console.log('updateGrayScalePreview');
-        var src = RasterLib.grayCanvas;
-        var w = src.width;
-        var h = src.height;
-        var cw = preview_canvas.width;
-        var ch = preview_canvas.height;
-        var ctx = preview_canvas_ctx;
-
-        var scale = Math.min(cw/w, ch/h);
-
-        ctx.clearRect(0, 0, cw, ch);
-        ctx.save();
-        ctx.scale(scale, scale);
-        ctx.drawImage(src, 0, 0);
-        ctx.restore();
+        vm.canvas_gray = RasterLib.grayCanvas;
+        if (vm.canvas_gray.modified) {
+            vm.canvas_gray.modified += 1;
+        } else {
+            vm.canvas_gray.modified = 1;
+        }
     }
 
     function updatePulsePreview() {
         console.log('updatePulsePreview');
-        var src = RasterLib.pulseCanvas;
-        //var w = src.width;
-        //var h = src.height;
-        var cw = preview_pulse_canvas.width;
-        var ch = preview_pulse_canvas.height;
-        var ctx = preview_pulse_canvas_ctx;
-        ctx.clearRect(0, 0, cw, ch);
-        ctx.save();
-        ctx.scale(3, 3);
-        ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(src, 0, 0);
-        ctx.restore();
+        vm.canvas_pulse = RasterLib.pulseCanvas;
+        if (vm.canvas_pulse.modified) {
+            vm.canvas_pulse.modified += 1;
+        } else {
+            vm.canvas_pulse.modified = 1;
+        }
     }
 })
