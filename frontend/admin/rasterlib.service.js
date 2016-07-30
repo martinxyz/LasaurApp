@@ -89,6 +89,7 @@ angular.module('app.raster')
 
         // dithering
         // source: http://blog.ivank.net/floyd-steinberg-dithering-in-javascript.html
+        // with bugfix concerning error rounding
         function floydSteinberg(sb, w, h)   // source buffer, width, height
         {
             for(var i=0; i<h; i++)
@@ -103,7 +104,7 @@ angular.module('app.raster')
                 if(i+1==h) continue;   // if we are in the last line
                 if(j  >0) sb[ci+w-1] += (err*3)>>4;  // bottom left neighbour
                 sb[ci+w  ] += (err*5)>>4;  // bottom neighbour
-                if(j+1<w) sb[ci+w+1] += (err*1)>>4;  // bottom right neighbour
+                if(j+1<w) sb[ci+w+1] += err - (err*7)>>4 - (err*3)>>4;  // bottom right neighbour
             }
         }
         floydSteinberg(arr, w, h);
