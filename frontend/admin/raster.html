@@ -9,9 +9,14 @@
             <span class="open-image-text text-muted" ng-hide="vm.uploadedImage">
               Select...
             </span>
-            <canvas width="300" height="300"
-                    raster-preview="vm.canvas_gray"
-                    ng-show="vm.uploadedImage"/>
+
+            <div ng-show="vm.uploadedImage">
+              <raster-preview width="300" height="300"
+                              img="vm.canvas_gray"
+                              always-zoomed="false"
+              />
+            </div>
+
             <input id="file-input" type="file" accept="image/*" style="display: none;">
           </label>
         </form>
@@ -21,10 +26,11 @@
       </div>
 
       <div class="col-md-4">
-        <div class="preview-frame">
-          <canvas width="300" height="300"
-                  raster-preview="vm.canvas_pulse"
-                  ng-show="vm.uploadedImage"/>
+        <div class="preview-frame" ng-show="vm.uploadedImage">
+          <raster-preview width="300" height="300"
+                          img="vm.canvas_pulse"
+                          always-zoomed="true"
+          />
         </div>
       </div>
       

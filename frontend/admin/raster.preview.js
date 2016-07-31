@@ -1,23 +1,30 @@
 angular.module('app.raster')
 .directive('rasterPreview', function () {
     var directive = {
-        restrict: 'A',
-        // templateUrl: 'app/feature/example.directive.html',
+        restrict: 'E',
         scope: {
-            img: '=rasterPreview'
+            img: '=',
+            width: '=',
+            height: '=',
+            alwaysZoomed: '='
         },
+        template: '<canvas />',
         link: link
     };
     return directive;
 
     function link(scope, element, attrs) {
         // element.on('mousemove', mousemove);
-        var canvas = element[0];
+        var canvas = element[0].firstChild;
         var ctx = canvas.getContext('2d');
         var el = $(canvas);
 
+        canvas.width = scope.width;
+        canvas.height = scope.height;
+
         var percent_x = 0.5;
         var percent_y = 0.5;
+        var zoomed = false;
         scope.$watch("img", reset);
         scope.$watch("img.modified", reset);
         el.mouseleave(reset);
@@ -31,12 +38,15 @@ angular.module('app.raster')
             percent_x = percent_x * 1.2 - 0.1;
             percent_y = percent_y * 1.2 - 0.1;
 
+            zoomed = true;
+
             redraw();
         });
 
         function reset() {
             percent_x = 0.5;
             percent_y = 0.5;
+            zoomed = false;
             redraw();
         }
 
@@ -46,7 +56,14 @@ angular.module('app.raster')
             var img = scope.img;
             if (img === null) return;
 
-            var zoom = 2.0;
+            if (scope.alwaysZoomed || zoomed) {
+                var zoom = 2.0;
+            } else {
+                // zoom to fit
+                zoom = Math.min(
+                    canvas.width / img.width ,
+                    canvas.height / img.height);
+            }
             var oversize_w = zoom*img.width - canvas.width;
             var oversize_h = zoom*img.height - canvas.height;
 
