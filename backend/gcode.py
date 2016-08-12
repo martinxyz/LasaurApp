@@ -152,14 +152,24 @@ class DriveboardGcode:
         elif cmd == 'M84': command = 'CMD_AUX2_ENABLE'
         elif cmd == 'M85': command = 'CMD_AUX2_DISABLE'
         elif cmd == 'G10':
-            # set offset
-            # note: the firmware calls stepper_get_position_x/y/z and ignores the params
-            #       (not sure if this is as intended)
-            # note: LasaurGrbl docu talks about "L20" and "L2" - what is this? Not used by FW?
-            p = args.pop('P')
-            if p == 0: command = 'CMD_SET_OFFSET_TABLE'
-            elif p == 1: command = 'CMD_SET_OFFSET_CUSTOM'
-            else: return 'error:invalid set_offset command %r' % line
+            p = args.pop('P', None)
+            if p == 0:  # set table offset (G54)
+                which = 'TABLE'
+            elif p == 1:  # set custom offset (G55)
+                which = 'CUSTOM'
+            else:
+                return 'error:set_offset G10 requires P0 or P1 parameter'
+
+            l = args.pop('L', None)
+            if l == 20:  # L20 - set to current location
+                command = 'CMD_SET_OFFSET_' + which
+            elif l != 2:
+                return 'error:set_offset G10 requires L2 or L20 parameter'
+            else:  # L2 - set to value
+                if 'X' in args: params.append(('PARAM_OFF' + which + '_X', args.pop('X')))
+                if 'Y' in args: params.append(('PARAM_OFF' + which + '_Y', args.pop('Y')))
+                if 'Z' in args: params.append(('PARAM_OFF' + which + '_Z', args.pop('Z')))
+                command = None  # sending the parameters is enough
         elif cmd == 'G54':
             command = 'CMD_SEL_OFFSET_TABLE'
         elif cmd == 'G55':
