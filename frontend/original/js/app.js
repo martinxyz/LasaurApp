@@ -307,7 +307,7 @@ $(document).ready(function(){
               !$('#location_set_btn').is(":focus") &&
               !$('#origin_set_btn').is(":focus"))
           {
-            var x = parseFloat(data.pos.x).toFixed(2) - app_settings.table_offset[0];
+            var x = parseFloat(data.pos.x).toFixed(2)/1;
             $('#x_location_field').val(x.toFixed(2));
             $('#x_location_field').animate({
               opacity: 0.5
@@ -316,7 +316,7 @@ $(document).ready(function(){
                 opacity: 1.0
               }, 600, function() {});
             });
-            var y = parseFloat(data.pos.y).toFixed(2) - app_settings.table_offset[1];
+            var y = parseFloat(data.pos.y).toFixed(2)/1;
             $('#y_location_field').val(y.toFixed(2));
             $('#y_location_field').animate({
               opacity: 0.5
