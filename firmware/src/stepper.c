@@ -64,9 +64,11 @@ static block_t *current_block;  // A pointer to the block currently being traced
 
 // Variables used by The Stepper Driver Interrupt
 static uint8_t out_bits;       // The next stepping-bits to be output
-static int32_t counter_x,       // Counter variables for the bresenham line tracer
-               counter_y,
-               counter_z;
+static int32_t counter_x;       // Counter variables for the bresenham line tracer
+static int32_t counter_y;
+#ifdef ENABLE_3AXES
+static int32_t counter_z;
+#endif
 static uint32_t step_events_completed; // The number of step events executed in the current block
 static volatile bool busy;  // true whe stepper ISR is in already running
 
@@ -286,7 +288,9 @@ ISR(TIMER1_COMPA_vect) {
       adjust_speed( adjusted_rate ); // initialize cycles_per_step_event
       counter_x = -(current_block->step_event_count >> 1);
       counter_y = counter_x;
+#ifdef ENABLE_3AXES
       counter_z = counter_x;
+#endif
       step_events_completed = 0;
       
       if (current_block->raster) {
@@ -324,6 +328,7 @@ ISR(TIMER1_COMPA_vect) {
           stepper_position[Y_AXIS] += 1;
         }        
       }
+#ifdef ENABLE_3AXES
       counter_z += current_block->steps_z;
       if (counter_z > 0) {
         out_bits |= (1<<Z_STEP_BIT);
@@ -335,6 +340,7 @@ ISR(TIMER1_COMPA_vect) {
           stepper_position[Z_AXIS] += 1;
         }        
       }
+#endif
       //////
       
       step_events_completed++;  // increment step count
@@ -525,7 +531,9 @@ static void homing_cycle(bool x_axis, bool y_axis, bool z_axis, bool reverse_dir
   
   if (x_axis) { out_bits |= (1<<X_STEP_BIT); }
   if (y_axis) { out_bits |= (1<<Y_STEP_BIT); }
+#ifdef ENABLE_3AXES
   if (z_axis) { out_bits |= (1<<Z_STEP_BIT); }
+#endif
   
   // Invert direction bits if this is a reverse homing_cycle
   if (reverse_direction) {
