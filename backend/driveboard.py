@@ -376,6 +376,19 @@ class Driveboard:
             param)
         self._send_fwbuf(data)
 
+    def send_raster_data(self, data):
+        # data = numpy.frombuffer(data, 'uint8')
+        # data.clip(0, 127)
+        # data += 128
+        # self._send_fwbuf(data.tobytes())
+        data = bytearray(data)
+        for i in range(len(data)):
+            if data[i] > 127:
+                data[i] = 127
+            else:
+                data[i] = data[i] + 128
+        self._send_fwbuf(data)
+
     def _send_fwbuf(self, data=b''):
         if self.fw_stopped:
             # while stopped, the firmware will discard all queued

@@ -1,11 +1,10 @@
 'use strict';
 
 angular.module('app.raster', ['app.core'])
-.controller('RasterController', function ($scope, $http, RasterLib) {
+.controller('RasterController', function ($scope, $http, $timeout, RasterLib) {
     var vm = this;
 
     const LASER_POWER = 100.0; // watts
-    const RASTER_BYTES_MAX = 60;
     const PULSE_SECONDS = 31.875e-6;  // see laser.c
     const MINIMUM_PULSE_TICKS = 3;    // unit: PULSE_SECONDS
     const MAXIMUM_PULSE_TICKS = 127;  // unit: PULSE_SECONDS
@@ -111,19 +110,34 @@ angular.module('app.raster', ['app.core'])
     }
 
     vm.sendJob = function () {
-        var gcode = RasterLib.makeGcode(vm.params);
-        vm.submitStatus = 'Sending gcode...';
+        var gcode_raster = RasterLib.makeGcode(vm.params);
+
+        vm.submitStatus = 'Generating gcode...';
         vm.serverMessage = '';
-        $http({
-            method: 'POST',
-            url: '/gcode',
-            data: gcode
-        }).then(function success(resp) {
-            vm.submitStatus = 'Gcode sent to backend.';
-        }, function error(resp) {
-            vm.submitStatus = 'Error sending gcode to backend.';
-            vm.serverMessage = resp.data;
-        })
+
+        $timeout(function() {
+            var gcode = '';
+            // gcode += 'G30\n';  // homing
+            gcode += 'M80\n';  // air_enable
+            gcode += 'G0 F' + vm.max_feedrate.toFixed(2) + '\n';
+            gcode += 'G0 F' + vm.max_feedrate + '\n';  // travel feedrate
+            gcode += gcode_raster;
+            gcode += 'G0 X0 Y0 F' + vm.max_feedrate + '\n';
+            gcode += 'M81\n';  // air_disable
+
+            vm.submitStatus = 'Sending gcode...';
+            vm.serverMessage = '';
+            $http({
+                method: 'POST',
+                url: '/gcode',
+                data: gcode
+            }).then(function success(resp) {
+                vm.submitStatus = 'Gcode sent to backend.';
+            }, function error(resp) {
+                vm.submitStatus = 'Error sending gcode to backend.';
+                vm.serverMessage = resp.data;
+            })
+        });
     }
 
     vm.canvas_gray = null;

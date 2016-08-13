@@ -152,19 +152,36 @@ angular.module('app.raster')
         var gcode_result = '';
         function gcode(line) {
             gcode_result += line + '\n';
-            console.log(line);
         }
+        var gcode_x;
+        var gcode_y;
         function move(x, y) {
-            gcode('G0 X' + x.toFixed(2) + ' Y' + y.toFixed(2));
+            gcode('G0 X' + x.toFixed(3) + ' Y' + y.toFixed(3));
+            gcode_x = x;
+            gcode_y = y;
         }
-        function raster_move(x, y, data) {
-            // gcode('G0 X' + x + ' Y' + y);
-            gcode('; TODO...  G0 X' + x.toFixed(2) + ' Y' + y.toFixed(2));
+        function raster_move(target_x, target_y, data) {
+            // split large move into smaller chunks
+            const RASTER_BYTES_MAX = 60;  // firmware buffer size
+            var bytes_total = data.length;
+            while (data.length > 0) {
+                var chunk = data.slice(0, RASTER_BYTES_MAX);
+                data = data.slice(RASTER_BYTES_MAX);
+                var fac = data.length / bytes_total;
+                var px = fac*gcode_x + (1-fac)*target_x;
+                var py = fac*gcode_y + (1-fac)*target_y;
+
+                // G7 (raster-line) command
+                var b64encoded = btoa(String.fromCharCode.apply(null, chunk));
+                gcode('G7 X' + px.toFixed(3) + ' Y' + py.toFixed(3) + 'V1 D' + b64encoded);
+            }
+            gcode_x = target_x;
+            gcode_y = target_y;
         }
 
         // set intensity to zero; the raster-move implicitly defines its own intensity
         gcode('S0');
-        gcode('G0 F' + params.feedrate.toFixed(2));
+        gcode('G0 F' + params.feedrate.toFixed(3));
 
         var direction = +1;
         for (var lineno=0; lineno < h; lineno++) {

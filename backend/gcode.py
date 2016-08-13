@@ -2,6 +2,7 @@ import driveboard
 import pulseraster
 import json
 import re
+import base64
 
 class DriveboardGcode:
     version = '# LasaurGrbl2 (pulseraster)'
@@ -90,6 +91,17 @@ class DriveboardGcode:
         if not self.driveboard.is_connected():
             return 'error:' + self.driveboard.get_disconnect_reason()
 
+        args = {}
+
+        # parse and remove raster data
+        if ' D' in line:
+            try:
+                line, data = line.split(' D')
+                data = base64.b64decode(data)
+                args['D'] = data
+            except:
+                return 'error: invalid base64 encoded data in gcode %r' % line
+
         # extract gcode parameters
         parts = re.split(r'([A-Z])', line)
         if parts[0] != '' or len(parts) < 3:
@@ -101,21 +113,21 @@ class DriveboardGcode:
             return 'error:gcode line ignored, could not parse int in %r' % line
         parts = parts[3:]
 
-        args = {}
         while parts:
             letter = parts.pop(0).strip()
             try:
                 value = float(parts.pop(0))
-                args[letter] = value
             except ValueError:
                 return 'error:gcode line ignored, could not parse float in %r' % line
+            args[letter] = value
 
         # result of parsing
         params = []
         command = None
+        raster_data = None
         intensity_value = None
 
-        if cmd in ('G0', 'G1'):
+        if cmd in ('G0', 'G1', 'G7'):
             # move (G0: without lasing; G1: with lasing)
             if 'X' in args: params.append(('PARAM_TARGET_X', args['X']))
             if 'Y' in args: params.append(('PARAM_TARGET_Y', args['Y']))
@@ -138,6 +150,16 @@ class DriveboardGcode:
             elif cmd == 'G1':
                 command = 'CMD_LINE_BURN'
                 intensity_value = args.pop('S', None)
+            elif cmd == 'G7':
+                command = 'CMD_LINE_RASTER'
+                if args.pop('V') != 1:
+                    return 'error:G7 command of unknown version'
+                raster_data = args.pop('D')
+                if not raster_data:
+                    return 'error:G7 command without raster data'
+                if len(raster_data) > driveboard.RASTER_BYTES_MAX:
+                    return 'error:G7 command only implemented for at most %d bytes of raster data' % driveboard.RASTER_BYTES_MAX
+                params.append(('PARAM_RASTER_BYTES', len(raster_data)))
 
         elif cmd == 'G90':
             command = 'CMD_REF_ABSOLUTE'
@@ -200,8 +222,11 @@ class DriveboardGcode:
             params.append(('PARAM_PULSE_DURATION', duration))
 
         # execute
+
         for name, value in params:
             self.driveboard.send_param(name, value)
         if command:
             self.driveboard.send_command(command)
+        if raster_data:
+            self.driveboard.send_raster_data(raster_data)
         return 'ok'
