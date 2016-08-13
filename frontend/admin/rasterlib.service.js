@@ -5,12 +5,14 @@ angular.module('app.raster')
     var sourceImg;
     var grayCanvas = document.createElement('canvas');
     var pulseCanvas = document.createElement('canvas');
+    var pulseArray = null;
     var service = {
         setImage: setImage,
         grayCanvas: grayCanvas,
         pulseCanvas: pulseCanvas,
         makeGrayScale: makeGrayScale,
-        makePulseImage: makePulseImage
+        makePulseImage: makePulseImage,
+        makeGcode: makeGcode
     }
     return service;
 
@@ -36,7 +38,7 @@ angular.module('app.raster')
         var pixels = imageData.data;
 
         for (var i = 0; i < pixels.length; i += 4) {
-	        var alpha = pixels[i+3]/255.0;
+            var alpha = pixels[i+3]/255.0;
             var gray = (pixels[i]*0.299 + pixels[i+1]*0.587 + pixels[i+2]*0.114) / 255.0;
             // remove transparency (use white background)
             gray = alpha * gray + (1.0-alpha);
@@ -51,18 +53,24 @@ angular.module('app.raster')
         ctx.putImageData(imageData, 0, 0);
     }
 
-    function makePulseImage(settings) {
+    function makePulseImage(params) {
         var input_w = grayCanvas.width;
         var input_h = grayCanvas.height;
 
         console.log('makePulseImage ' + input_w + ', ' + input_h);
 
         // scale image to output ppmm
-        var w = settings.ppmm * settings.width;
-        var scale = (settings.ppmm * settings.width) / input_w;
+        var w = params.ppmm * params.width;
+        var scale = (params.ppmm * params.width) / input_w;
         var h = scale * input_h;
         w = Math.round(w);
         h = Math.round(h);
+
+        if (w == 0 || h == 0) {
+            pulseCanvas.width = 0;
+            pulseCanvas.height = 0;
+            return;
+        }
 
         pulseCanvas.width = w;
         pulseCanvas.height = h;
@@ -109,31 +117,102 @@ angular.module('app.raster')
         }
         floydSteinberg(arr, w, h);
 
-        // invert back for showing it as preview
+        // export to pulseArray (for execution) and to canvas (for preview)
         for (i = 0; i < w*h; i += 1) {
+            // preview
             var i4 = i*4;
             pixels[i4+0] = 255 - arr[i];
             pixels[i4+1] = 255 - arr[i];
             pixels[i4+2] = 255 - arr[i];
             pixels[i4+3] = 255;
+
+            // pulse duration bytes
+            if (arr[i] !== 0) arr[i] = params.pulse;
+        }
+        ctx.putImageData(imageData, 0, 0);
+        pulseArray = arr;
+        pulseArray.w = w;
+        pulseArray.h = h;
+
+        return h;
+    }
+
+    function makeGcode(params)  {
+        var arr = pulseArray;
+        var w = pulseArray.w;
+        var h = pulseArray.h;
+
+        var x0 = params.pos_x;
+        var y0 = params.pos_y;
+        var lead_in = params.lead_in;
+        var ppmm_x = params.ppmm;
+        var ppmm_y = params.ppmm;
+        var bidirectional = params.bidirectional;
+        var skip_empty = params.skip_empty;
+
+        // Execute the rastering of a pulse-duration image
+        // assert pulse_duration_image.max() < 128, 'image contains pulse durations that are not feasible'
+
+        var gcode_result = '';
+        function gcode(line) {
+            gcode_result += line + '\n';
+            console.log(line);
+        }
+        function move(x, y) {
+            gcode('G0 X' + x.toFixed(2) + ' Y' + y.toFixed(2));
+        }
+        function raster_move(x, y, data) {
+            // gcode('G0 X' + x + ' Y' + y);
+            gcode('; TODO...  G0 X' + x.toFixed(2) + ' Y' + y.toFixed(2));
         }
 
-        ctx.putImageData(imageData, 0, 0);
-    
-        // convert to pulse image
-        // img = PIL2array(img)
-        // img[img>0] = pulse
+        // set intensity to zero; the raster-move implicitly defines its own intensity
+        gcode('S0');
+        gcode('G0 F' + params.feedrate.toFixed(2));
 
-        /*
-          accel_dist = 0.5 * feedrate**2 / b.ACCELERATION
-          lead_in_max = accel_dist * 1.2
-          lead_in = min(settings.lead_in, lead_in_max)
-          print 'lead-in: %.2f mm' % lead_in
+        var direction = +1;
+        for (var lineno=0; lineno < h; lineno++) {
+            var y = y0 + lineno/ppmm_y;
+            var x = x0;
 
-          b.feedrate(feedrate)
-          raster_execute(b, img, x0, y0, settings.ppmm, settings.ppmm, settings.skip_empty, settings.bidirectional, lead_in)
-        */
-        console.log('makePulseImage put result ' + w + ', ' + h);
+            var data = arr.slice(w*lineno, w*(lineno+1));
+
+            if (skip_empty) {
+                var first = -1;
+                var last = -1;
+                for (var i=0; i<data.length; i++) {
+                    if (data[i] !== 0) {
+                        if (first === -1) first = i;
+                        last = i;
+                    }
+                }
+                if (first === -1) continue;
+                x += first/ppmm_x
+                data = data.slice(first, last+1);
+            }
+
+            if (direction === -1) {
+                // A raster move always starts with a pulse, and ends with no pulse.
+                //     0---1---2---3---|  forward
+                // |---0---1---2---3      backward
+                data.reverse();
+                x += (data.length-1)/ppmm_x;
+            }
+
+            if (lead_in) {
+                move(x-direction*lead_in, y);
+            }
+            move(x, y);
+            x += direction*data.length/ppmm_x;
+            raster_move(x, y, data)
+            if (lead_in) {
+                move(x+direction*lead_in, y);
+            }
+
+            if (bidirectional) {
+                direction *= -1;
+            }
+        }
+        return gcode_result;
     }
-    
 });

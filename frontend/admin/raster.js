@@ -21,7 +21,7 @@ angular.module('app.raster', ['app.core'])
 
     vm.requested_ppmm = 18.0;
     vm.requested_pulse = null;
-    vm.max_feedrate = 8000;
+    vm.max_feedrate = 6000;
     vm.max_intensity = 80;
 
     vm.params = {
@@ -32,8 +32,8 @@ angular.module('app.raster', ['app.core'])
         bidirectional: false,
         skip_empty: true,
         lead_in: 2.0,
-        pos_x: 0.0,
-        pos_y: 0.0,
+        pos_x: 10.0,
+        pos_y: 10.0,
         // calculated
         ppmm: null,
         feedrate: null
@@ -48,7 +48,7 @@ angular.module('app.raster', ['app.core'])
         // - choose a pulse_duration
         // - adjust ppmm such that black pixels have the correct energy_density
         // - scale image according to ppmm
-        // - use dithering for mid-tones (shorter pulses are not used)
+        // - use dithering for mid-tones
         // - decrease feedrate if required to implement high energy_density or high ppmm
 
         // Calculate ppmm for each allowed pulse duration,
@@ -76,7 +76,7 @@ angular.module('app.raster', ['app.core'])
         var feedrate = vm.max_feedrate;
 
         // limit feedrate such that max_intensity is respected
-        var feedrate_limit1 = params.max_intensity/100.0 / (ppmm * (pulse * PULSE_SECONDS)) * 60;
+        var feedrate_limit1 = vm.max_intensity/100.0 / (ppmm * (pulse * PULSE_SECONDS)) * 60;
         feedrate = Math.min(feedrate, feedrate_limit1);
 
         // limit feedrate such that the driveboard will not slow down to wait for serial data
@@ -87,12 +87,32 @@ angular.module('app.raster', ['app.core'])
 
         vm.params.feedrate = feedrate;
 
-        // vm.actual_intensity = ppmm * (pulse * PULSE_SECONDS) * (feedrate / 60) * 100;
+        vm.actual_intensity = ppmm * (pulse * PULSE_SECONDS) * (feedrate / 60) * 100;
 
         RasterLib.makeGrayScale();
-        RasterLib.makePulseImage(vm.params);
+        var line_count = RasterLib.makePulseImage(vm.params);
         updatePulsePreview();
         updateGrayScalePreview();
+
+        // estimate duration
+        var accel_dist = 0.5 * Math.pow(feedrate, 2) / ACCELERATION;
+        vm.accel_dist = accel_dist;
+        var line_length = 2*params.lead_in + params.width;
+        var cruising_dist = line_length - 2*accel_dist;
+        if (cruising_dist <= 0) {
+            cruising_dist = 0;
+            accel_dist = line_length/2;
+        }
+        var cruising_time = cruising_dist / feedrate;
+        var accel_time = Math.sqrt(2*accel_dist / ACCELERATION);
+        var line_duration = cruising_time + 2*accel_time;
+        vm.duration = line_duration * line_count;
+        if (!vm.params.bidirectional) vm.duration *= 2;
+    }
+
+    vm.sendJob = function () {
+        var gcode = RasterLib.makeGcode(vm.params);
+        // TODO: send_gcode()
     }
 
     vm.canvas_gray = null;
@@ -135,7 +155,6 @@ angular.module('app.raster', ['app.core'])
     }
 
     function updateGrayScalePreview() {
-        console.log('updateGrayScalePreview');
         vm.canvas_gray = RasterLib.grayCanvas;
         if (vm.canvas_gray.modified) {
             vm.canvas_gray.modified += 1;
@@ -145,7 +164,6 @@ angular.module('app.raster', ['app.core'])
     }
 
     function updatePulsePreview() {
-        console.log('updatePulsePreview');
         vm.canvas_pulse = RasterLib.pulseCanvas;
         if (vm.canvas_pulse.modified) {
             vm.canvas_pulse.modified += 1;
