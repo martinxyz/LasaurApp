@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('app.raster', ['app.core'])
-.controller('RasterController', function ($scope, RasterLib) {
+.controller('RasterController', function ($scope, $http, RasterLib) {
     var vm = this;
 
     const LASER_POWER = 100.0; // watts
@@ -112,7 +112,18 @@ angular.module('app.raster', ['app.core'])
 
     vm.sendJob = function () {
         var gcode = RasterLib.makeGcode(vm.params);
-        // TODO: send_gcode()
+        vm.submitStatus = 'Sending gcode...';
+        vm.serverMessage = '';
+        $http({
+            method: 'POST',
+            url: '/gcode',
+            data: gcode
+        }).then(function success(resp) {
+            vm.submitStatus = 'Gcode sent to backend.';
+        }, function error(resp) {
+            vm.submitStatus = 'Error sending gcode to backend.';
+            vm.serverMessage = resp.data;
+        })
     }
 
     vm.canvas_gray = null;

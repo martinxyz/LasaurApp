@@ -45,6 +45,10 @@
          (Shorter if image has empty parts.) <br/>
           </span>
         <button class="btn btn-lg btn-primary" ng-click="vm.sendJob()">Send to Lasersaur</button>
+        <div>
+          {{vm.submitStatus}}
+          <pre ng-show="vm.serverMessage">{{vm.serverMessage}}</pre>
+        </div>
         </div>
       </div>
     </div>

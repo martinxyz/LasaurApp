@@ -18,13 +18,11 @@ angular.module('app.raster')
 
     function setImage(img) {
         sourceImg = img;
-        console.log('setImage');
     }
 
     function makeGrayScale() {
         var w = sourceImg.width;
         var h = sourceImg.height;
-        console.log('makeGrayScale ' + w + ', ' + h);
 
         // note: for SVGs we have some arbitrary width/height set by
         // the browser, if we did override it here the browser would
@@ -56,8 +54,6 @@ angular.module('app.raster')
     function makePulseImage(params) {
         var input_w = grayCanvas.width;
         var input_h = grayCanvas.height;
-
-        console.log('makePulseImage ' + input_w + ', ' + input_h);
 
         // scale image to output ppmm
         var w = params.ppmm * params.width;

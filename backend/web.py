@@ -129,8 +129,18 @@ class GcodeHandler(tornado.web.RequestHandler):
         self.board = board
 
     def post(self):
-        gcode = self.get_body_argument()
-        print('gcode was posted: %r' % gcode)
+        gcode = self.request.body
+        # note: some code duplication with GcodeTCPServer
+        for line in gcode.split(b'\n'):
+            line = line.decode('utf-8', 'ignore').strip()
+            if line:
+                resp = self.board.gcode_line(line) + '\n'
+                if resp.startswith('error:'):
+                    errors = True
+                    logging.warning(resp[6:])
+                # TODO: Not sure if this non-json response is useful for javascript.
+                #       Should probably also return HTTP error if disconnected, etc.
+                self.write(resp.encode('utf-8'))
 
 class WSHandler(tornado.websocket.WebSocketHandler):
     clients = set()
