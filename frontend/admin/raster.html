@@ -113,8 +113,9 @@
             <div class="col-md-5">
               <input class="form-control" id="ppmm" type="number" min="0" step="0.5" ng-model="vm.requested_ppmm" ng-change="vm.recalculate()">
               <span class="help-block">
-                Selected pulse duration: {{vm.params.pulse}} ticks ({{vm.pulse_duration_us()|number:0}} microseconds).
-                Actually doing {{vm.params.ppmm|number:1}} pulses per mm (closest match).
+                Selected pulse duration: {{vm.params.pulse}}&nbsp;ticks ({{vm.pulse_duration_us()|number:0}}&nbsp;microseconds).
+                Actually doing {{vm.params.ppmm|number:1}}&nbsp;pulses per mm (closest match). Pulse frequency
+                {{(vm.params.feedrate/60 * vm.params.ppmm) |number:1}}&nbsp;Hz.
               </span>
             </div>
           </div>

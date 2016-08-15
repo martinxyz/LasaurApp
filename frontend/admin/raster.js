@@ -54,23 +54,26 @@ angular.module('app.raster', ['app.core'])
         // and choose the ppmm closest to the target.
         var best_pulse;
         var best_ppmm;
-        var best_error;
-        var params = vm.params;
-        for (var pulse = MINIMUM_PULSE_TICKS; pulse <= MAXIMUM_PULSE_TICKS; pulse++) {
-            var pulse_duration = pulse * PULSE_SECONDS;
-            var energy_per_pulse = pulse_duration * LASER_POWER;  // joules
-            var pulse_density = params.energy_density / energy_per_pulse;
-            var ppmm = Math.sqrt(pulse_density);
-            var error = Math.abs(vm.requested_ppmm - ppmm);
-            if (pulse === MINIMUM_PULSE_TICKS || error < best_error) {
-                best_pulse = pulse;
-                best_ppmm = ppmm;
-                best_error = error;
+        (function find_best_params() {
+            var best_error;
+            for (var pulse = MINIMUM_PULSE_TICKS; pulse <= MAXIMUM_PULSE_TICKS; pulse++) {
+                var pulse_duration = pulse * PULSE_SECONDS;
+                var energy_per_pulse = pulse_duration * LASER_POWER;  // joules
+                var pulse_density = vm.params.energy_density / energy_per_pulse;
+                var ppmm = Math.sqrt(pulse_density);
+                var error = Math.abs(vm.requested_ppmm - ppmm);
+                if (pulse === MINIMUM_PULSE_TICKS || error < best_error) {
+                    best_pulse = pulse;
+                    best_ppmm = ppmm;
+                    best_error = error;
+                }
             }
-        }
+        })();
 
-        vm.params.pulse = best_pulse;
-        vm.params.ppmm = best_ppmm;
+        var pulse = best_pulse;
+        var ppmm = best_ppmm;
+        vm.params.pulse = pulse;
+        vm.params.ppmm = ppmm;
 
         var feedrate = vm.max_feedrate;
 
@@ -86,7 +89,7 @@ angular.module('app.raster', ['app.core'])
 
         vm.params.feedrate = feedrate;
 
-        vm.actual_intensity = ppmm * (pulse * PULSE_SECONDS) * (feedrate / 60) * 100;
+        vm.actual_intensity = (pulse * PULSE_SECONDS) * ( (feedrate/60.0) * ppmm )  * 100;
 
         RasterLib.makeGrayScale();
         var line_count = RasterLib.makePulseImage(vm.params);
@@ -96,7 +99,7 @@ angular.module('app.raster', ['app.core'])
         // estimate duration
         var accel_dist = 0.5 * Math.pow(feedrate, 2) / ACCELERATION;
         vm.accel_dist = accel_dist;
-        var line_length = 2*params.lead_in + params.width;
+        var line_length = 2*vm.params.lead_in + vm.params.width;
         var cruising_dist = line_length - 2*accel_dist;
         if (cruising_dist <= 0) {
             cruising_dist = 0;
