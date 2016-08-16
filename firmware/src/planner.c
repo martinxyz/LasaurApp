@@ -118,10 +118,6 @@ void planner_line(double x, double y, double z, double feed_rate,
     }
   }
 
-  // laser intensity
-  block->laser_pulse_duration = pulse_duration;
-  block->laser_pulse_frequency = (double)0x10000 * pulse_frequency * (LASER_IRQ_CYCLES / (1000000.0*CYCLES_PER_MICROSECOND));
-
   // compute direction bits for this block
   block->direction_bits = 0;
   if (target[X_AXIS] < position[X_AXIS]) { block->direction_bits |= (1<<X_DIRECTION_BIT); }
@@ -150,6 +146,16 @@ void planner_line(double x, double y, double z, double feed_rate,
   double inverse_minute = feed_rate * inverse_millimeters;
   block->nominal_speed = block->millimeters * inverse_minute; // always > 0
   block->nominal_rate = ceil(block->step_event_count * inverse_minute); // always > 0
+
+  if (raster_bytes) {
+    // frequency = raster_bytes * mm_per_second / length
+    pulse_frequency = raster_bytes * inverse_minute / 60;
+    pulse_duration = 0;  // will be overridden by raster bytes
+  }
+
+  // laser intensity
+  block->laser_pulse_duration = pulse_duration;
+  block->laser_pulse_frequency = (double)0x10000 * pulse_frequency * (LASER_IRQ_CYCLES / (1000000.0*CYCLES_PER_MICROSECOND));
 
   // precalculate value for adjust_speed(), see stepper.c
   block->pulse_freq_over_nominal_rate = (double)block->laser_pulse_frequency / block->nominal_rate * (1UL<<(5+16));
