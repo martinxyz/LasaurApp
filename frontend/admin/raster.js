@@ -20,6 +20,7 @@ angular.module('app.raster', ['app.core'])
 
     vm.requested_ppmm = 18.0;
     vm.requested_pulse = null;
+    vm.requested_lead_in = 2.5;
     vm.max_feedrate = 6000;
     vm.max_intensity = 80;
 
@@ -99,6 +100,11 @@ angular.module('app.raster', ['app.core'])
         // estimate duration
         var accel_dist = 0.5 * Math.pow(feedrate, 2) / ACCELERATION;
         vm.accel_dist = accel_dist;
+
+        // Limit lead-in to the acceleration time plus 3 seconds.
+        var lead_in_max = accel_dist + 3.0 * feedrate / 60;
+        vm.params.lead_in = Math.min(vm.requested_lead_in, lead_in_max);
+
         var line_length = 2*vm.params.lead_in + vm.params.width;
         var cruising_dist = line_length - 2*accel_dist;
         if (cruising_dist <= 0) {
@@ -110,6 +116,10 @@ angular.module('app.raster', ['app.core'])
         var line_duration = cruising_time + 2*accel_time;
         vm.duration = line_duration * line_count;
         if (!vm.params.bidirectional) vm.duration *= 2;
+
+        // just for displaying
+        vm.height_calculated = vm.params.width/vm.uploadedImage.width*vm.uploadedImage.height;
+        vm.height_calculated = vm.height_calculated.toFixed(1);
     }
 
     vm.sendJob = function () {

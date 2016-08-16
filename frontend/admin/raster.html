@@ -34,8 +34,6 @@
         </div>
         <div class="preview-subtext text-muted" ng-show="vm.uploadedImage">
           {{vm.canvas_pulse.width}} x {{vm.canvas_pulse.height}} pulses ({{vm.canvas_pulse.width / (vm.params.width / 25.4) | number:0 }} dpi)
-          <br/>
-          {{vm.params.width|number:1}} x {{vm.params.width/vm.uploadedImage.width*vm.uploadedImage.height|number:1}} mm
         </div>
       </div>
       <div class="col-md-4">
@@ -44,6 +42,15 @@
           <span ng-show="vm.params.skip_empty">
          (Shorter if image has empty parts.) <br/>
           </span>
+
+          <div class="well" ng-show="vm.params.pos_x - vm.params.lead_in < -2.5">
+            <p>
+            <span class="label label-warning">Warning</span>
+            <b>You risk hitting the X end-stop.</b>
+            </p>
+The X end-stop is usually at x=-5mm. Your move starts at x={{vm.params.pos_x - vm.params.lead_in | number:1}}. Please increase the X position, or reduce the lead-in. If you have set an appropriate table offset you can ignore this warning.</span>
+          </div>
+
         <button class="btn btn-lg btn-primary" ng-click="vm.sendJob()">Send to Lasersaur</button>
         <div>
           {{vm.submitStatus}}
@@ -67,9 +74,13 @@
           </div>
           <div class="form-group" role="form">
             <label class="col-md-3 control-label" for="width">Width (mm)</label>
-            <div class="col-md-5">
+            <div class="col-md-2">
               <input class="form-control" id="width" type="number" min="0" ng-model="vm.params.width" ng-change="vm.recalculate()">
             </div>
+            <label class="col-md-1 control-label">Height</label>
+            <label class="col-md-2">
+              <input class="form-control" type="number" ng-value="vm.height_calculated" ng-disabled="true">
+            </label>
           </div>
 
           <div class="form-group" role="form">
@@ -102,9 +113,9 @@
           <div class="form-group form-group">
             <label class="col-md-3 control-label" for="lead-in">Lead-In</label>
             <div class="col-md-5">
-              <input class="form-control" id="lead-in" type="number" min="0" step="0.1" ng-model="vm.params.lead_in" ng-change="vm.recalculate()">
-              <span class="help-block">in mm (accelerate distance: {{vm.accel_dist|number:2}}mm)</span>
-              <span class="help-block">Attention: Lead-In moves the head beyond the image position on the X-Axis. End-stops are usually at -5mm.</span>
+              <input class="form-control" id="lead-in" type="number" min="0" step="0.1" ng-model="vm.requested_lead_in" ng-change="vm.recalculate()">
+              <span class="help-block">in mm (accelerate distance: {{vm.accel_dist|number:1}}mm)</span>
+              <span class="help-block" ng-show="vm.params.lead_in !== vm.requested_lead_in && vm.params.lead_in !== undefined">Actually using {{vm.params.lead_in|number:1}} mm, which is the acceleration distance plus 3 seconds. </span>
             </div>
           </div>
 
@@ -123,7 +134,7 @@
           <div class="form-group form-group">
             <label class="col-md-3 control-label" for="max-feedrate">Max Feedrate</label>
             <div class="col-md-5">
-              <input class="form-control" id="max-feedrate" type="number" min="0" step="200" ng-model="vm.max_feedrate" ng-change="vm.recalculate()">
+              <input class="form-control" id="max-feedrate" type="number" min="0" step="100" ng-model="vm.max_feedrate" ng-change="vm.recalculate()">
               <span class="help-block">Actual feedrate: {{vm.params.feedrate | number:0}} mm/min</span>
             </div>
           </div>
@@ -137,6 +148,10 @@
           </div>
 
         </form>
+        Duration: {{vm.duration | number:1}} minutes <br/>
+          <span ng-show="vm.params.skip_empty">
+         (Shorter if image has empty parts.) <br/>
+          </span>
       </div>
     </div>
   </div>
