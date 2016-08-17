@@ -164,7 +164,7 @@ angular.module('app.raster', ['app.core'])
         function fileLoaded(loadEvent) {
             var img = new Image();
             img.onload = imageLoaded;
-            img.src = event.target.result;
+            img.src = loadEvent.target.result;
             function imageLoaded() {
                 $scope.$apply(function() {
                     setImage(img);
@@ -173,6 +173,7 @@ angular.module('app.raster', ['app.core'])
         }
     }
 
+    /*
     // for development/debugging
     function debugInit() {
         var img = new Image();
@@ -185,6 +186,7 @@ angular.module('app.raster', ['app.core'])
         }
     }
     debugInit();
+    */
 
     function setImage(img) {
         vm.uploadedImage = img;
