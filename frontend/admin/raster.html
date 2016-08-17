@@ -37,7 +37,7 @@
         </div>
       </div>
       <div class="col-md-4">
-        <div class="job-summary">
+        <div class="job-summary" ng-show="vm.uploadedImage">
         Duration: {{vm.duration | number:1}} minutes <br/>
           <span ng-show="vm.params.skip_empty">
          (Shorter if image has empty parts.) <br/>
@@ -49,6 +49,14 @@
             <b>You risk hitting the X end-stop.</b>
             </p>
 The X end-stop is usually at x=-5mm. Your move starts at x={{vm.params.pos_x - vm.params.lead_in | number:1}}. Please increase the X position, or reduce the lead-in. If you have set an appropriate table offset you can ignore this warning.</span>
+          </div>
+
+          <div class="well" ng-show="vm.params.feedrate > 8000">
+            <p>
+            <span class="label label-danger">Danger</span>
+            <b>Feedrate is very high.</b>
+            </p>
+               The firmware may not work well with feedrates above 8000. Watch your machine closely and expect motion glitches. The firmware <b>will lock-up</b> sometimes for feedrates around 16000 due to CPU overload.
           </div>
 
         <button class="btn btn-lg btn-primary" ng-click="vm.sendJob()">Send to Lasersaur</button>
@@ -111,10 +119,10 @@ The X end-stop is usually at x=-5mm. Your move starts at x={{vm.params.pos_x - v
           </div>
 
           <div class="form-group form-group">
-            <label class="col-md-3 control-label" for="lead-in">Lead-In</label>
+            <label class="col-md-3 control-label" for="lead-in">Lead-In (mm)</label>
             <div class="col-md-5">
               <input class="form-control" id="lead-in" type="number" min="0" step="0.1" ng-model="vm.requested_lead_in" ng-change="vm.recalculate()">
-              <span class="help-block">in mm (accelerate distance: {{vm.accel_dist|number:1}}mm)</span>
+              <span class="help-block">(accelerate distance {{vm.accel_dist|number:1}}&nbsp;mm)</span>
               <span class="help-block" ng-show="vm.params.lead_in !== vm.requested_lead_in && vm.params.lead_in !== undefined">Actually using {{vm.params.lead_in|number:1}} mm, which is the acceleration distance plus 3 seconds. </span>
             </div>
           </div>
@@ -124,9 +132,9 @@ The X end-stop is usually at x=-5mm. Your move starts at x={{vm.params.pos_x - v
             <div class="col-md-5">
               <input class="form-control" id="ppmm" type="number" min="0" step="0.5" ng-model="vm.requested_ppmm" ng-change="vm.recalculate()">
               <span class="help-block">
+                Actually doing {{vm.params.ppmm|number:1}}&nbsp;pulses per mm (closest match).
                 Selected pulse duration: {{vm.params.pulse}}&nbsp;ticks ({{vm.pulse_duration_us()|number:0}}&nbsp;microseconds).
-                Actually doing {{vm.params.ppmm|number:1}}&nbsp;pulses per mm (closest match). Pulse frequency
-                {{(vm.params.feedrate/60 * vm.params.ppmm) |number:1}}&nbsp;Hz.
+                Pulse frequency {{(vm.params.feedrate/60 * vm.params.ppmm) |number:1}}&nbsp;Hz.
               </span>
             </div>
           </div>
