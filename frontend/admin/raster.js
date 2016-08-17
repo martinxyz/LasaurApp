@@ -13,11 +13,6 @@ angular.module('app.raster', ['app.core'])
 
     vm.uploadedImage = null;
 
-    vm.img_w = 0;
-    vm.img_h = 0;
-
-    vm.haveImage = false;
-
     vm.requested_ppmm = 18.0;
     vm.requested_pulse = null;
     vm.requested_lead_in = 2.5;
@@ -25,7 +20,6 @@ angular.module('app.raster', ['app.core'])
     vm.max_intensity = 80;
 
     vm.params = {
-        // set directly
         width: 20.0,
         energy_density: 0.7,
         binary: false,
@@ -33,10 +27,7 @@ angular.module('app.raster', ['app.core'])
         skip_empty: true,
         lead_in: 2.0,
         pos_x: 10.0,
-        pos_y: 10.0,
-        // calculated
-        ppmm: null,
-        feedrate: null
+        pos_y: 10.0
     }
 
     vm.pulse_duration_us = function() {

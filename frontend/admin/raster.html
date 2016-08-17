@@ -122,8 +122,8 @@ The X end-stop is usually at x=-5mm. Your move starts at x={{vm.params.pos_x - v
             <label class="col-md-3 control-label" for="lead-in">Lead-In (mm)</label>
             <div class="col-md-5">
               <input class="form-control" id="lead-in" type="number" min="0" step="0.1" ng-model="vm.requested_lead_in" ng-change="vm.recalculate()">
-              <span class="help-block">(accelerate distance {{vm.accel_dist|number:1}}&nbsp;mm)</span>
-              <span class="help-block" ng-show="vm.params.lead_in !== vm.requested_lead_in && vm.params.lead_in !== undefined">Actually using {{vm.params.lead_in|number:1}} mm, which is the acceleration distance plus 3 seconds. </span>
+              <span class="help-block" ng-show="vm.uploadedImage">(acceleration distance {{vm.accel_dist|number:1}}&nbsp;mm)</span>
+              <span class="help-block" ng-show="vm.uploadedImage && vm.params.lead_in !== vm.requested_lead_in">Actually using {{vm.params.lead_in|number:1}} mm, which is the acceleration distance plus 3 seconds. </span>
             </div>
           </div>
 
@@ -131,7 +131,7 @@ The X end-stop is usually at x=-5mm. Your move starts at x={{vm.params.pos_x - v
             <label class="col-md-3 control-label" for="ppmm">Pulses per mm</label>
             <div class="col-md-5">
               <input class="form-control" id="ppmm" type="number" min="0" step="0.5" ng-model="vm.requested_ppmm" ng-change="vm.recalculate()">
-              <span class="help-block">
+              <span class="help-block" ng-show="vm.uploadedImage">
                 Actually doing {{vm.params.ppmm|number:1}}&nbsp;pulses per mm (closest match).
                 Selected pulse duration: {{vm.params.pulse}}&nbsp;ticks ({{vm.pulse_duration_us()|number:0}}&nbsp;microseconds).
                 Pulse frequency {{(vm.params.raster_feedrate/60 * vm.params.ppmm) |number:1}}&nbsp;Hz.
@@ -143,7 +143,7 @@ The X end-stop is usually at x=-5mm. Your move starts at x={{vm.params.pos_x - v
             <label class="col-md-3 control-label" for="max-feedrate">Max Feedrate</label>
             <div class="col-md-5">
               <input class="form-control" id="max-feedrate" type="number" min="0" step="100" ng-model="vm.max_feedrate" ng-change="vm.recalculate()">
-              <span class="help-block">Actual feedrate: {{vm.params.raster_feedrate | number:0}} mm/min (travel: {{vm.params.travel_feedrate}})</span>
+              <span class="help-block" ng-show="vm.uploadedImage">Actual feedrate: {{vm.params.raster_feedrate | number:0}} mm/min (travel: {{vm.params.travel_feedrate | number:0}})</span>
             </div>
           </div>
 
@@ -151,15 +151,17 @@ The X end-stop is usually at x=-5mm. Your move starts at x={{vm.params.pos_x - v
             <label class="col-md-3 control-label" for="max-intensity">Max Intensity</label>
             <div class="col-md-5">
               <input class="form-control" id="max-intensity" type="number" min="0" max="100" step="5" ng-model="vm.max_intensity" ng-change="vm.recalculate()">
-              <span class="help-block">Actual intensity: {{vm.actual_intensity | number:1}}%</span>
+              <span class="help-block" ng-show="vm.uploadedImage">Actual intensity: {{vm.actual_intensity | number:1}}%</span>
             </div>
           </div>
 
         </form>
-        Duration: {{vm.duration | number:1}} minutes <br/>
+        <div ng-show="vm.uploadedImage">
+          Duration: {{vm.duration | number:1}} minutes <br/>
           <span ng-show="vm.params.skip_empty">
-         (Shorter if image has empty parts.) <br/>
+            (Shorter if image has empty parts.) <br/>
           </span>
+        </div>
       </div>
     </div>
   </div>
