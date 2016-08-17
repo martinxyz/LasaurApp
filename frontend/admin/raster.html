@@ -51,7 +51,7 @@
 The X end-stop is usually at x=-5mm. Your move starts at x={{vm.params.pos_x - vm.params.lead_in | number:1}}. Please increase the X position, or reduce the lead-in. If you have set an appropriate table offset you can ignore this warning.</span>
           </div>
 
-          <div class="well" ng-show="vm.params.feedrate > 8000">
+          <div class="well" ng-show="vm.params.raster_feedrate > 8000 || vm.params.travel_feedrate > 8000">
             <p>
             <span class="label label-danger">Danger</span>
             <b>Feedrate is very high.</b>
@@ -134,7 +134,7 @@ The X end-stop is usually at x=-5mm. Your move starts at x={{vm.params.pos_x - v
               <span class="help-block">
                 Actually doing {{vm.params.ppmm|number:1}}&nbsp;pulses per mm (closest match).
                 Selected pulse duration: {{vm.params.pulse}}&nbsp;ticks ({{vm.pulse_duration_us()|number:0}}&nbsp;microseconds).
-                Pulse frequency {{(vm.params.feedrate/60 * vm.params.ppmm) |number:1}}&nbsp;Hz.
+                Pulse frequency {{(vm.params.raster_feedrate/60 * vm.params.ppmm) |number:1}}&nbsp;Hz.
               </span>
             </div>
           </div>
@@ -143,7 +143,7 @@ The X end-stop is usually at x=-5mm. Your move starts at x={{vm.params.pos_x - v
             <label class="col-md-3 control-label" for="max-feedrate">Max Feedrate</label>
             <div class="col-md-5">
               <input class="form-control" id="max-feedrate" type="number" min="0" step="100" ng-model="vm.max_feedrate" ng-change="vm.recalculate()">
-              <span class="help-block">Actual feedrate: {{vm.params.feedrate | number:0}} mm/min</span>
+              <span class="help-block">Actual feedrate: {{vm.params.raster_feedrate | number:0}} mm/min (travel: {{vm.params.travel_feedrate}})</span>
             </div>
           </div>
 

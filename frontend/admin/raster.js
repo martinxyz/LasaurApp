@@ -77,6 +77,7 @@ angular.module('app.raster', ['app.core'])
         vm.params.ppmm = ppmm;
 
         var feedrate = vm.max_feedrate;
+        vm.params.travel_feedrate = feedrate;
 
         // limit feedrate such that max_intensity is respected
         var feedrate_limit1 = vm.max_intensity/100.0 / (ppmm * (pulse * PULSE_SECONDS)) * 60;
@@ -88,7 +89,7 @@ angular.module('app.raster', ['app.core'])
         var feedrate_limit2 = byte_per_second / ppmm * 60.0
         feedrate = Math.min(feedrate, feedrate_limit2);
 
-        vm.params.feedrate = feedrate;
+        vm.params.raster_feedrate = feedrate;
 
         vm.actual_intensity = (pulse * PULSE_SECONDS) * ( (feedrate/60.0) * ppmm )  * 100;
 
@@ -132,10 +133,8 @@ angular.module('app.raster', ['app.core'])
             var gcode = '';
             // gcode += 'G30\n';  // homing
             gcode += 'M80\n';  // air_enable
-            gcode += 'G0 F' + vm.max_feedrate.toFixed(2) + '\n';
-            gcode += 'G0 F' + vm.max_feedrate + '\n';  // travel feedrate
             gcode += gcode_raster;
-            gcode += 'G0 X0 Y0 F' + vm.max_feedrate + '\n';
+            gcode += 'G0 X0 Y0 F' + vm.params.travel_feedrate.toFixed(2) + '\n';
             gcode += 'M81\n';  // air_disable
 
             vm.submitStatus = 'Sending gcode...';

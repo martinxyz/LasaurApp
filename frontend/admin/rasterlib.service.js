@@ -155,15 +155,16 @@ angular.module('app.raster')
         }
         var gcode_x;
         var gcode_y;
-        function move(x, y) {
-            gcode('G0 X' + x.toFixed(3) + ' Y' + y.toFixed(3));
+        function move(x, y, feedrate) {
+            gcode('G0 X' + x.toFixed(3) + ' Y' + y.toFixed(3) + ' F' + feedrate.toFixed(3));
             gcode_x = x;
             gcode_y = y;
         }
-        function raster_move(target_x, target_y, data) {
+        function raster_move(target_x, target_y, feedrate, data) {
             // split large move into smaller chunks
             const RASTER_BYTES_MAX = 60;  // firmware buffer size
             var bytes_total = data.length;
+            first = true;
             while (data.length > 0) {
                 var chunk = data.slice(0, RASTER_BYTES_MAX);
                 data = data.slice(RASTER_BYTES_MAX);
@@ -171,17 +172,22 @@ angular.module('app.raster')
                 var px = fac*gcode_x + (1-fac)*target_x;
                 var py = fac*gcode_y + (1-fac)*target_y;
 
+                var feedrate_param = '';
+                if (first) {
+                    first = false;
+                    feedrate_param = ' F' + feedrate.toFixed(3);
+                }
+
                 // G7 (raster-line) command
                 var b64encoded = btoa(String.fromCharCode.apply(null, chunk));
-                gcode('G7 X' + px.toFixed(3) + ' Y' + py.toFixed(3) + 'V1 D' + b64encoded);
+                gcode('G7 X' + px.toFixed(3) + ' Y' + py.toFixed(3) + feedrate_param + ' V1 D' + b64encoded);
             }
             gcode_x = target_x;
             gcode_y = target_y;
         }
 
-        // set intensity to zero; the raster-move implicitly defines its own intensity
+        // set intensity to zero, just in case (the raster-move implicitly defines its own intensity)
         gcode('S0');
-        gcode('G0 F' + params.feedrate.toFixed(3));
 
         var direction = +1;
         for (var lineno=0; lineno < h; lineno++) {
@@ -212,15 +218,13 @@ angular.module('app.raster')
                 x += (data.length-1)/ppmm_x;
             }
 
-            if (lead_in) {
-                move(x-direction*lead_in, y);
-            }
-            move(x, y);
+            move(x-direction*lead_in, y, params.travel_feedrate);
+            move(x, y, params.raster_feedrate);
+
             x += direction*data.length/ppmm_x;
-            raster_move(x, y, data)
-            if (lead_in) {
-                move(x+direction*lead_in, y);
-            }
+            raster_move(x, y, params.raster_feedrate, data);
+
+            move(x+direction*lead_in, y, params.raster_feedrate);
 
             if (bidirectional) {
                 direction *= -1;
