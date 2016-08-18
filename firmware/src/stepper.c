@@ -498,6 +498,11 @@ void adjust_speed( uint32_t steps_per_minute ) {
   // steps_per_minute is typicaly just adjusted_rate
   if (steps_per_minute < MINIMUM_STEPS_PER_MINUTE) { steps_per_minute = MINIMUM_STEPS_PER_MINUTE; }
   uint32_t tmp = (CYCLES_PER_MICROSECOND*1000000*60)/steps_per_minute; // duration: 42us
+
+  // Prevent system lock-up if a feedrate above 16'000 mm/min was
+  // requested. No more smooth motion, but CMD_STOP should work.
+  if (tmp < 40) tmp = 40;
+
   cycles_per_step_event = config_step_timer(tmp); // duration: 5us
   // performance note: 8'000 mm/min = 82us between microsteps
 

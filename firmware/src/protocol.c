@@ -124,7 +124,7 @@ static uint16_t stack_clearance();
 
 void protocol_init() {
   st.ref_mode = REF_ABSOLUTE;
-  st.feedrate = CONFIG_FEEDRATE;
+  st.feedrate = CONFIG_INITIAL_FEEDRATE;
   clear_vector(st.target);
   st.pulse_frequency = 0.0;
   st.pulse_duration = 0.0;
