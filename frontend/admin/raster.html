@@ -59,12 +59,43 @@ The X end-stop is usually at x=-5mm. Your move starts at x={{vm.params.pos_x - v
                The firmware may not work well with feedrates above 8000. Watch your machine closely and expect motion glitches. The firmware <b>will lock-up</b> sometimes for feedrates around 16000 due to CPU overload.
           </div>
 
-        <button class="btn btn-lg btn-primary" ng-click="vm.sendJob()">Send to Lasersaur</button>
-        <div>
+        <p>
+          <div class="btn-toolbar" role="toolbar">
+            <div class="btn-group">
+              <button class="btn btn-lg btn-primary" ng-click="vm.sendJob()">Send to Lasersaur</button>
+            </div>
+          </div>
+        </p>
+
+        <div class="btn-toolbar" role="toolbar">
+          <div class="btn-group">
+            <button class="btn btn-default" type="button" title="move to origin" ng-click="vm.goToOrigin();">
+              (0, 0)
+            </button>
+            <button class="btn btn-default" type="button" title="run homing cycle" ng-click="vm.homing();">
+              <span class="glyphicon glyphicon-home"></span>
+            </button>
+            <button ng-show="vm.status.paused !== true"class="btn btn-default" type="button" title="pause" ng-click="vm.pause();">
+              <span class="glyphicon glyphicon-pause"></span>
+            </button>
+            <button ng-show="vm.status.paused === true" class="btn btn-warning" type="button" title="continue" ng-click="vm.unpause();">
+              <span class="glyphicon glyphicon-play"></span>
+            </button>
+            <button class="btn btn-default" type="button" title="stop and purge job" ng-click="vm.stopAndResume();">
+              <span class="glyphicon glyphicon-stop"></span>
+            </button>
+          </div>
+        </div>
+
+        <uib-progressbar max="100" type="success" value="vm.status.queue.job_percent">{{vm.status.queue.job_percent|number:0}}%</uib-progressbar>
+
+        <div ng-show="!vm.haveStatusUpdates" class="alert alert-danger">no status updates from backend server (reload the page to reconnect)</div>
+        <p>{{vm.status.error_report}} </p>
+        <p>
           {{vm.submitStatus}}
           <pre ng-show="vm.serverMessage">{{vm.serverMessage}}</pre>
-        </div>
-        </div>
+        </p>
+
       </div>
     </div>
 

@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('app.raster', ['app.core'])
-.controller('RasterController', function ($scope, $http, $timeout, RasterLib) {
+.controller('RasterController', function ($scope, $http, $websocket, $timeout, $interval, RasterLib) {
     var vm = this;
 
     const LASER_POWER = 100.0; // watts
@@ -114,6 +114,21 @@ angular.module('app.raster', ['app.core'])
         vm.height_calculated = vm.height_calculated.toFixed(1);
     }
 
+    vm.sendGcode = function(gcode) {
+        return $http({
+            method: 'POST',
+            url: '/gcode',
+            data: gcode
+        }).then(function success(resp) {
+            vm.submitStatus = 'Gcode sent to backend.';
+            $timeout(function() { vm.submitStatus = ''; }, 3000);
+        }, function error(resp) {
+            vm.submitStatus = 'Error sending gcode to backend.';
+            $timeout(function() { vm.submitStatus = ''; }, 3000);
+            vm.serverMessage = resp.data;
+        })
+    }
+
     vm.sendJob = function () {
         var gcode_raster = RasterLib.makeGcode(vm.params);
 
@@ -130,18 +145,54 @@ angular.module('app.raster', ['app.core'])
 
             vm.submitStatus = 'Sending gcode...';
             vm.serverMessage = '';
-            $http({
-                method: 'POST',
-                url: '/gcode',
-                data: gcode
-            }).then(function success(resp) {
-                vm.submitStatus = 'Gcode sent to backend.';
-            }, function error(resp) {
-                vm.submitStatus = 'Error sending gcode to backend.';
-                vm.serverMessage = resp.data;
-            })
+            vm.sendGcode(gcode);
         });
     }
+
+    vm.stopAndResume = function() {
+        return vm.sendGcode('!').then(function() {  // stop
+            return $timeout(function() {
+                return vm.sendGcode('~');  // resume
+            }, 1000);
+        });
+    };
+
+    vm.homing = function() {
+        vm.stopAndResume().then(function() {
+            vm.sendGcode('G30');  // homing
+        });
+    };
+
+    vm.goToOrigin = function() {
+        vm.sendGcode('G0 X0 Y0 F' + vm.max_feedrate.toFixed(2));
+    }
+
+    vm.pause = function() {
+        vm.sendGcode('!pause');
+    }
+    vm.unpause = function() {
+        vm.sendGcode('!unpause');
+    }
+
+    // FIXME: status code duplication with admin.js. Maybe turn this into a service?
+    vm.status = {};
+    vm.showJson = false;
+    vm.haveStatusUpdates = true;
+    vm.lastStatusMessageReceived = true;
+
+    var statusStream = $websocket('ws://' + window.location.host + '/status/ws');
+    statusStream.onMessage(function(message) {
+        vm.status = JSON.parse(message.data);
+        vm.lastStatusMessageReceived = true;
+        vm.haveStatusUpdates = true;
+    });
+    $interval(function watchStatusUpdates() {
+        if (!vm.lastStatusMessageReceived) {
+            vm.haveStatusUpdates = false;
+        }
+        vm.lastStatusMessageReceived = false;
+    }, 500);
+
 
     vm.canvas_gray = null;
     vm.canvas_pulse = null;
