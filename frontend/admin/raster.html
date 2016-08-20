@@ -37,10 +37,13 @@
         </div>
       </div>
       <div class="col-md-4">
-        <div class="job-summary" ng-show="vm.uploadedImage">
+        <div class="job-summary">
+          <span ng-show="vm.duration > 0">
+            
         Duration: {{vm.duration | number:1}} minutes <br/>
           <span ng-show="vm.params.skip_empty">
          (Shorter if image has empty parts.) <br/>
+          </span>
           </span>
 
           <div class="well" ng-show="vm.params.pos_x - vm.params.lead_in < -2.5">
@@ -62,7 +65,7 @@ The X end-stop is usually at x=-5mm. Your move starts at x={{vm.params.pos_x - v
         <p>
           <div class="btn-toolbar" role="toolbar">
             <div class="btn-group">
-              <button class="btn btn-lg btn-primary" ng-click="vm.sendJob()">Send to Lasersaur</button>
+              <button class="btn btn-lg btn-primary" ng-click="vm.sendJob()" ng-disabled="!(vm.duration > 0)">Send to Lasersaur</button>
             </div>
           </div>
         </p>
@@ -88,7 +91,8 @@ The X end-stop is usually at x=-5mm. Your move starts at x={{vm.params.pos_x - v
         </div>
 
         <uib-progressbar max="100" type="success" value="vm.status.queue.job_percent">{{vm.status.queue.job_percent|number:0}}%</uib-progressbar>
-
+        <span class="text-muted">Firmware buffer tracking: {{vm.status.queue.firmbuf}} bytes<br/>
+        Should be 254 when busy and less than 16 when idle.</span>
         <div ng-show="!vm.haveStatusUpdates" class="alert alert-danger">no status updates from backend server (reload the page to reconnect)</div>
         <p>{{vm.status.error_report}} </p>
         <p>

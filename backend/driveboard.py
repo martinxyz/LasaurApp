@@ -278,9 +278,12 @@ class Driveboard:
         firmbuf_percent = 100.0 * float(firmbuf_used_for_sure) / (FIRMBUF_SIZE - TX_CHUNK_SIZE)
 
         # Estimate "percent job done" (percent of bytes, not execution time)
-        bytes_waiting = firmbuf_used_for_sure + len(self.firmbuf_queue) + len(self.serial_write_queue)
+        bytes_waiting = len(self.firmbuf_queue) + len(self.serial_write_queue)
+        # better estimate, but not working due to a bug:
+        #bytes_waiting = firmbuf_used_for_sure + len(self.firmbuf_queue) + len(self.serial_write_queue)
         if bytes_waiting == 0:
             job_percent = 100.0
+            self.jobsize = 0
         else:
             self.jobsize = max(bytes_waiting, self.jobsize)
             job_percent = 100.0 * (1.0 - float(bytes_waiting) / self.jobsize)
