@@ -357,8 +357,8 @@ class Driveboard:
             if cmd == CMD_RESUME:
                 self.fw_stopped = False
                 self.fw_resuming = True
-                if self.status.get('STOPERROR_RX_BUFFER_OVERFLOW') or \
-                  self.status.get('STOPERROR_TRANSMISSION_ERROR'):
+                if 'rx_buffer_overflow' in self.status['stops'] or \
+                  'transmission_error' in self.status['stops']:
                   # need to fix the buffer tracking first
                   self.reset_protocol()
             self._serial_write(bytes([cmd]))
