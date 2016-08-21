@@ -69,7 +69,7 @@ bool buffer_underrun_marked = false;
 * and apon receiving it send the next chunk.     *
 *************************************************/
 #define RX_CHUNK_SIZE 16
-volatile bool notify_chunk_processed = false;
+volatile uint8_t notify_chunk_processed = 0;
 uint8_t rx_buffer_processed = 0;
 
 uint8_t serial_read();
@@ -140,7 +140,7 @@ ISR(USART_UDRE_vect) {
   
   if (notify_chunk_processed) {
     UDR0 = CMD_CHUNK_PROCESSED ;
-    notify_chunk_processed = false;
+    notify_chunk_processed--;
   } else {                    // Send a byte from the buffer 
     UDR0 = tx_buffer[tail];
     if (++tail == TX_BUFFER_SIZE) {tail = 0;}  // increment
@@ -160,7 +160,7 @@ uint8_t serial_read() {
   rx_buffer_open_slots++;
   rx_buffer_processed++;
   if (rx_buffer_processed == RX_CHUNK_SIZE) {
-    notify_chunk_processed = true;
+    notify_chunk_processed++;
     UCSR0B |=  (1 << UDRIE0);  // enable tx interrupt (to acknowledge the chunk)
     rx_buffer_processed = 0;
   }
