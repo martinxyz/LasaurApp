@@ -91,8 +91,6 @@ The X end-stop is usually at x=-5mm. Your move starts at x={{vm.params.pos_x - v
         </div>
 
         <uib-progressbar max="100" type="success" value="vm.status.queue.job_percent">{{vm.status.queue.job_percent|number:0}}%</uib-progressbar>
-        <span class="text-muted">Firmware buffer tracking: {{vm.status.queue.firmbuf}} bytes<br/>
-        Should be 254 when busy and less than 16 when idle.</span>
         <div ng-show="!vm.haveStatusUpdates" class="alert alert-danger">no status updates from backend server (reload the page to reconnect)</div>
         <p>{{vm.status.error_report}} </p>
         <p>
