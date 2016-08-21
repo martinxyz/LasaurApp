@@ -12,12 +12,9 @@ class DriveboardGcode:
 
         # modal state of the gcode protocol (last used parameter)
         self.relative = False
-        self.feedrate = None
-        # self.pulse_frequency = None
-        # self.pulse_duration = None
-        self.x = None
-        self.y = None
-        self.z = None
+        # defaults only used of never set by gcode
+        self.feedrate = 6000
+        self.seekrate = 1500
 
     def connect(self):
         self.driveboard.connect()
@@ -129,21 +126,16 @@ class DriveboardGcode:
 
         if cmd in ('G0', 'G1', 'G7'):
             # move (G0: without lasing; G1: with lasing)
-            if 'X' in args: params.append(('PARAM_TARGET_X', args['X']))
-            if 'Y' in args: params.append(('PARAM_TARGET_Y', args['Y']))
-            if 'Z' in args: params.append(('PARAM_TARGET_Z', args['Z']))
-            if 'F' in args: params.append(('PARAM_FEEDRATE', args['F']))
+            if 'X' in args: params.append(('PARAM_TARGET_X', args.pop('X')))
+            if 'Y' in args: params.append(('PARAM_TARGET_Y', args.pop('Y')))
+            if 'Z' in args: params.append(('PARAM_TARGET_Z', args.pop('Z')))
 
-            # consume arguments and keep track of state
-            self.x = args.pop('X', self.x)
-            self.y = args.pop('Y', self.y)
-            self.z = args.pop('Z', self.z)
-            self.feedrate = args.pop('F', self.feedrate)
-            if self.relative:
-                # not bothering to track position in relative mode
-                self.x = None
-                self.y = None
-                self.z = None
+            if cmd == 'G0':
+                self.seekrate = args.pop('F', self.seekrate)
+                params.append(('PARAM_FEEDRATE', self.seekrate))
+            else:
+                self.feedrate = args.pop('F', self.feedrate)
+                params.append(('PARAM_FEEDRATE', self.feedrate))
 
             if cmd == 'G0':
                 command = 'CMD_LINE_SEEK'
@@ -198,10 +190,6 @@ class DriveboardGcode:
             command = 'CMD_SEL_OFFSET_CUSTOM'
         elif cmd == 'G30':
             command = 'CMD_HOMING'
-            # homing moves to the table offset (not always (0, 0))
-            self.x = None
-            self.y = None
-            self.z = None
         elif cmd[0] == 'S':
             # set intensity
             intensity_value = line[1:]
