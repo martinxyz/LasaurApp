@@ -76,7 +76,11 @@ angular.module('app.raster')
             px = Math.round(px);
             py = Math.round(py);
 
+            ctx.mozImageSmoothingEnabled = false;
+            ctx.webkitImageSmoothingEnabled = false;
+            ctx.msImageSmoothingEnabled = false;
             ctx.imageSmoothingEnabled = false;
+
             ctx.drawImage(img, px, py,
                           zoom*img.width, zoom*img.height);
         }

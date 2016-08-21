@@ -20,14 +20,14 @@ angular.module('app.raster', ['app.core'])
     vm.max_intensity = 80;
 
     vm.params = {
-        width: 20.0,
+        width: 50.0,
         energy_density: 0.7,
         binary: false,
-        bidirectional: false,
+        bidirectional: true,
         skip_empty: true,
         lead_in: 2.0,
-        pos_x: 10.0,
-        pos_y: 10.0
+        pos_x: 0.0,
+        pos_y: 0.0
     }
 
     vm.pulse_duration_us = function() {
