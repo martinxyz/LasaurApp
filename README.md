@@ -7,6 +7,8 @@ This is the *pulseraster* branch. It adds a pulse-based protocol for
 raster images (firmware). There is also a new web server built around
 gcode (backend) and a separate GUI for rastering (frontend).
 
+![Screenshot](screenshot.png?raw=true)
+
 The previous stable lasaurapp (vector-cutting only) has been ported to
 run mostly as before on the new backend.
 
