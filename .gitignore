@@ -4,5 +4,5 @@
 
 userconfig.py
 firmware/LasaurGrbl_from_src.hex
-bower_components
+# bower_components
 

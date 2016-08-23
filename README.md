@@ -1,61 +1,76 @@
-LasaurApp - pulseraster branch
+LasaurApp (pulseraster branch)
 ==============================
 
 LasaurApp is the official [Lasersaur](http://lasersaur.com) app.
 
-The *pulseraster* branch adds a better protocol for binary raster
-images (firmware) and a new web server (backend) that aims to be
-compatible with
-[LaserWeb2](https://github.com/openhardwarecoza/LaserWeb2#laserweb2)
-by emulating a
-[ChiliPeppr serial port json server](https://github.com/chilipeppr/serial-port-json-server)
-(SJPS), translating gcode to the firmware binary protocol.
+This is the *pulseraster* branch. It adds a pulse-based protocol for
+raster images (firmware). There is also a new web server built around
+gcode (backend) and a separate GUI for rastering (frontend).
 
-There is also a port of the original (production-ready) LasaurApp in
-progress, which can be run alongside LaserWeb2 (or any other frontend).
-
-Status: unfinished work-in-progress, for developers only.
+The previous stable lasaurapp (vector-cutting only) has been ported to
+run mostly as before on the new backend.
 
 Installation (pulseraster)
 --------------------------
 
-Python 3.4 or later and tornado (a Python library) are required.  They
-can be installed with:
+Clone into a new "pulseraster" directory using git:
 
 ```
-apt-get update
-apt-get install python3 python3-tornado
+git clone -b pulseraster git@github.com:martinxyz/LasaurApp.git pulseraster
 ```
 
-Upgrading from "Lasersaur BBB Image v15.01"
--------------------------------------------
-
-This is the official Lasersaur image which is based on Ubuntu 14.04.
-Python3 is available but outdated. You'll get errors saying that
-*asyncio* is missing.
+Python 3.4 or later and tornado (a Python library) are required.
+The current official Lasersaur image (BBB Image v15.01) is based on
+Ubuntu 14.04.  If you install Python3 you will get a version that is
+too old. (You'll get an error saying that *asyncio* is missing.)
 
 It is possible to upgrade Python3 and Tornado from the Ubuntu 15.10
 ("Wily") repository. This can be done by replacing *trusty* with
 *wily* in `/etc/apt/sources.list` before running the commands above.
 
 
-Troubleshooting
+```
+apt-get update
+apt-get install python3 python3-tornado
+```
+
+You can start the backend manually (kill any other backend process first):
+```
+cd pulseraster/backend/
+./backend.py beaglebone.ini
+```
+
+Or you can set up the startup scripts:
+
+```
+cd pulseraster/scripts
+./change-startup-to-pulseraster.sh
+reboot
+```
+
+After the reboot, you should be able to access the web
+interface. (Reload the page if it was already open.) Use the "Admin"
+menu to build and flash the new firmware.
+
+You can use ```change-startup-to-lasaurapp.sh``` or
+```change-startup-to-driveboardapp.sh``` if you want to go back.
+
+
+Common Problems
 ---------------
 
 If you get Python errors about *json* and *Bad magic number*, it's
 probably because you have an old "json" directory still lying around.
-The json library was removed from the LasaurApp repository because the
-Python built-in version should be used.  Delete (or rename) the json
-directory and all `.pyc` files.
+The json library was removed from LasaurApp, the Python built-in
+version should be used instead.  Solution: delete the json/ directory
+and all `.pyc` files.
 
-Running without BBB
--------------------
-TODO maybe?
+```
+rm -rf backend/json backend/*.pyc
+```
 
-
-
-LasaurApp - original notes
-==========================
+LasaurApp (original notes, maybe outdated)
+==========================================
 
 LasaurApp is the official [Lasersaur](http://lasersaur.com) app. It has all the functionality to operate this kind of laser cutter:
 
