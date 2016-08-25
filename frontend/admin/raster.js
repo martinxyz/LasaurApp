@@ -21,7 +21,7 @@ angular.module('app.raster', ['app.core'])
 
     vm.params = {
         width: 50.0,
-        energy_density: 0.7,
+        energy_density: 0.4,
         binary: false,
         bidirectional: true,
         skip_empty: true,
