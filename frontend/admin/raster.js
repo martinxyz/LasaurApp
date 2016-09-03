@@ -191,7 +191,7 @@ angular.module('app.raster', ['app.core'])
             vm.haveStatusUpdates = false;
         }
         vm.lastStatusMessageReceived = false;
-    }, 500);
+    }, 1500);
 
 
     vm.canvas_gray = null;

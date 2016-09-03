@@ -28,7 +28,7 @@ too old. (You'll get an error saying that *asyncio* is missing.)
 
 It is possible to upgrade Python3 and Tornado from the Ubuntu 15.10
 ("Wily") repository. This can be done by replacing *trusty* with
-*wily* in `/etc/apt/sources.list` before running the commands above.
+*wily* in `/etc/apt/sources.list` before running the commands below.
 
 
 ```

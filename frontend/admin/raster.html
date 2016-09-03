@@ -13,7 +13,6 @@
             <div ng-show="vm.uploadedImage">
               <raster-preview width="300" height="300"
                               img="vm.canvas_gray"
-                              always-zoomed="false"
               />
             </div>
 
@@ -29,7 +28,6 @@
         <div class="preview-frame" ng-show="vm.uploadedImage">
           <raster-preview width="300" height="300"
                           img="vm.canvas_pulse"
-                          always-zoomed="true"
           />
         </div>
         <div class="preview-subtext text-muted" ng-show="vm.uploadedImage">

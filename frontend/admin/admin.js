@@ -25,7 +25,7 @@ angular.module('app.admin', ['app.core'])
             vm.haveStatusUpdates = false;
         }
         vm.lastStatusMessageReceived = false;
-    }, 500);
+    }, 1500);
 
     vm.flashFirmware = function(use_prebuilt_release) {
         var url = '/firmware/flash';
