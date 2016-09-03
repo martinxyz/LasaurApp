@@ -87,8 +87,16 @@ angular.module('app.raster')
         var imageData = ctx.getImageData(0, 0, w, h);
         var pixels = imageData.data;
         var arr = new Uint8ClampedArray(w*h);
-        for (var i = 0; i < w*h; i += 1) {
-            arr[i] = 255 - pixels[i*4];
+        if (params.invert) {
+            // white means high power (for backlighting acrylic, etc.)
+            for (var i = 0; i < w*h; i += 1) {
+                arr[i] = pixels[i*4];
+            }
+        } else {
+            // black means high power (for marking wood)
+            for (var i = 0; i < w*h; i += 1) {
+                arr[i] = 255 - pixels[i*4];
+            }
         }
 
         // dithering

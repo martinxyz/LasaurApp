@@ -22,13 +22,18 @@ angular.module('app.raster', ['app.core'])
     vm.params = {
         width: 50.0,
         energy_density: 0.4,
-        binary: false,
+        invert: false,
+        // binary: false,
         bidirectional: true,
         skip_empty: true,
         lead_in: 2.0,
         pos_x: 0.0,
         pos_y: 0.0
     }
+
+    vm.frame_enable = false;
+    vm.frame_cut_feedrate = 1500;
+    vm.frame_cut_intensity = 70;
 
     vm.pulse_duration_us = function() {
         return vm.params.pulse * PULSE_SECONDS / 1e-6;
@@ -109,9 +114,8 @@ angular.module('app.raster', ['app.core'])
         vm.duration = line_duration * line_count;
         if (!vm.params.bidirectional) vm.duration *= 2;
 
-        // just for displaying
         vm.height_calculated = vm.params.width/vm.uploadedImage.width*vm.uploadedImage.height;
-        vm.height_calculated = vm.height_calculated.toFixed(1);
+        vm.height_calculated_pretty = vm.height_calculated.toFixed(1);
     }
 
     vm.sendGcode = function(gcode) {
@@ -140,6 +144,15 @@ angular.module('app.raster', ['app.core'])
             // gcode += 'G30\n';  // homing
             gcode += 'M80\n';  // air_enable
             gcode += gcode_raster;
+
+            if (vm.frame_enable) {
+                var x0 = vm.params.pos_x;
+                var y0 = vm.params.pos_y;
+                var x1 = x0 + vm.params.width;
+                var y1 = y0 + vm.height_calculated;
+                gcode += cutBoxGcode(x0, y0, x1, y1);
+            }
+
             gcode += 'G0 X0 Y0 F' + vm.params.travel_feedrate.toFixed(2) + '\n';
             gcode += 'M81\n';  // air_disable
 
@@ -147,6 +160,24 @@ angular.module('app.raster', ['app.core'])
             vm.serverMessage = '';
             vm.sendGcode(gcode);
         });
+    }
+
+    function cutBoxGcode(x0, y0, x1, y1) {
+        x0 = x0.toFixed(2);
+        y0 = y0.toFixed(2);
+        x1 = x1.toFixed(2);
+        y1 = y1.toFixed(2);
+        var f_travel = vm.params.travel_feedrate.toFixed(2);
+        var f_cut = vm.frame_cut_feedrate.toFixed(2);
+        var s_cut = (vm.frame_cut_intensity * 255 / 100).toFixed(2);
+        var gcode = '';
+        gcode += 'G0 X'+x0+' Y'+y0 + ' F'+f_travel + '\n';
+        gcode += 'G1 S' + s_cut + ' F'+f_cut + '\n';
+        gcode += 'G1 X'+x1+' Y'+y0 + '\n';
+        gcode += 'G1 X'+x1+' Y'+y1 + '\n';
+        gcode += 'G1 X'+x0+' Y'+y1 + '\n';
+        gcode += 'G1 X'+x0+' Y'+y0 + '\n';
+        return gcode;
     }
 
     vm.stopAndResume = function() {
