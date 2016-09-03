@@ -108,17 +108,19 @@ function update_progress() {
   $.get('/queue_pct_done', function(data) {
     if (data.length > 0) {
       var pct = parseInt(data);
+      $("#progressbar").show();
       $("#progressbar").children().first().width(pct+'%');
-      setTimeout(update_progress, 2000);         
+      setTimeout(update_progress, 2000);
     } else {
       if (progress_not_yet_done_flag) {
+        $("#progressbar").show();
         $("#progressbar").children().first().width('100%');
         $().uxmessage('notice', "Done.");
         progress_not_yet_done_flag = false;
         setTimeout(update_progress, 2000);
       } else {
         $('#progressbar').hide();
-        $("#progressbar").children().first().width(0); 
+        $("#progressbar").children().first().width(0);
       }
     }
   });
