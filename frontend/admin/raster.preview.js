@@ -5,7 +5,8 @@ angular.module('app.raster')
         scope: {
             img: '=',
             width: '=',
-            height: '='
+            height: '=',
+            alwaysZoomed: '='
         },
         template: '<canvas />',
         link: link
@@ -55,8 +56,8 @@ angular.module('app.raster')
             var img = scope.img;
             if (img === null) return;
 
-            if (zoomed) {
-                var zoom = 3.0;
+            if (scope.alwaysZoomed || zoomed) {
+                var zoom = 4.0;
             } else {
                 // zoom to fit
                 zoom = Math.min(
