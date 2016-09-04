@@ -13,7 +13,7 @@ angular.module('app.raster', ['app.core'])
 
     vm.uploadedImage = null;
 
-    vm.requested_ppmm = 18.0;
+    vm.requested_ppmm = 7.0;
     vm.requested_pulse = null;
     vm.requested_lead_in = 2.5;
     vm.max_feedrate = 6000;

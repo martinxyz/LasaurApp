@@ -194,7 +194,8 @@ The X end-stop is usually at x=-5mm. Your move starts at x={{vm.params.pos_x - v
               <input class="form-control" id="ppmm" type="number" min="0" step="0.5" ng-model="vm.requested_ppmm" ng-change="vm.recalculate()">
               <span class="help-block" ng-show="vm.uploadedImage">
                 Actually doing {{vm.params.ppmm|number:1}}&nbsp;pulses per mm (closest match).
-                Selected pulse duration: {{vm.params.pulse}}&nbsp;ticks ({{vm.pulse_duration_us()|number:0}}&nbsp;microseconds).
+                That's {{(1/vm.params.ppmm)|number:2}}&nbsp;mm between pulses.
+                Pulse duration: {{vm.params.pulse}}&nbsp;ticks ({{vm.pulse_duration_us()|number:0}}&nbsp;µs).
                 Pulse frequency {{(vm.params.raster_feedrate/60 * vm.params.ppmm) |number:1}}&nbsp;Hz.
               </span>
             </div>
