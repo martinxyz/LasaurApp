@@ -1,7 +1,7 @@
 
 __author__ = 'Andreas Bachmann <andreas.bachmann@fablabwinti.ch>'
 
-import dxf_table_handler
+from . import dxf_table_handler
 
 
 # View (VIEW) table

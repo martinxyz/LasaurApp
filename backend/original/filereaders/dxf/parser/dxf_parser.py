@@ -1,7 +1,7 @@
 
 __author__ = 'Andreas Bachmann <andreas.bachmann@fablabwinti.ch>'
 
-import dxf_handler
+from . import dxf_handler
 import logging
 
 
@@ -64,7 +64,7 @@ class DXFParser(dxf_handler.DXFHandler):
 
 
     def parse(self, dxfstring, tolerance):
-        from dxf_group_buffer import DXFGroupBuffer
+        from .dxf_group_buffer import DXFGroupBuffer
         from filereaders.dxf.dxf_document import DXFDocument
 
         linecount   = 0
@@ -82,8 +82,8 @@ class DXFParser(dxf_handler.DXFHandler):
         log.info("Parse Done")
 
         path = []
-        for layerName, layer in document.layers.iteritems():
-            for entityName, entityList in layer.entities.iteritems():
+        for layerName, layer in document.layers.items():
+            for entityName, entityList in layer.entities.items():
                 try:
                     for entity in entityList:
                         path.append(entity.rasterize(tolerance))

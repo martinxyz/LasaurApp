@@ -1,7 +1,7 @@
 
 __author__ = 'Andreas Bachmann <andreas.bachmann@fablabwinti.ch>'
 
-import dxf_section_handler
+from . import dxf_section_handler
 from filereaders.dxf.dxf_constants import DXFConstants
 
 

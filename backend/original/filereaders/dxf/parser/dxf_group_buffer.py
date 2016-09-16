@@ -1,7 +1,7 @@
 
 __author__ = 'Andreas Bachmann <andreas.bachmann@fablabwinti.ch>'
 
-import StringIO
+import io
 import logging
 
 from filereaders.dxf.dxf_value import DXFValue
@@ -12,12 +12,12 @@ log = logging.getLogger(__name__)
 class DXFGroupBuffer:
 
     def __init__(self, buf):
-        self.stringio = StringIO.StringIO(buf)
+        self.stringio = io.StringIO(buf)
 
     def __iter__(self):
         return self
 
-    def next(self):
+    def __next__(self):
         """
 
         :return: a group code and the according value

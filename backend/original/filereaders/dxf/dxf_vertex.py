@@ -1,7 +1,7 @@
 
 __author__ = 'Andreas Bachmann <andreas.bachmann@fablabwinti.ch>'
 
-import dxf_point
+from . import dxf_point
 
 
 class DXFVertex(dxf_point.DXFPoint):

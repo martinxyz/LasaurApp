@@ -1,8 +1,8 @@
 
 __author__ = 'Andreas Bachmann <andreas.bachmann@fablabwinti.ch>'
 
-import dxf_entity
-import dxf_constants
+from . import dxf_entity
+from . import dxf_constants
 
 
 class DXFPoint(dxf_entity.DXFEntity):
