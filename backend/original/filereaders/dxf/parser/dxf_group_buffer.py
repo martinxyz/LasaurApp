@@ -38,5 +38,6 @@ class DXFGroupBuffer:
             raise ValueError('Premature end of file!')
         value = DXFValue(value.strip())
 
-        log.debug("%-3i : %s", groupCode, value)
+        # critical path (log call adds 10% runtime)
+        #log.debug("%-3i : %s", groupCode, value)
         return groupCode, value

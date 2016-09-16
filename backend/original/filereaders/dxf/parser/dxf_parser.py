@@ -124,6 +124,7 @@ class DXFParser(dxf_handler.DXFHandler):
                 self.parseIt = False
 
         elif self.parseIt:
+            # optimize: hot path
             #try:
                 self.handler.parseGroup(groupCode, value)
             #except AttributeError:

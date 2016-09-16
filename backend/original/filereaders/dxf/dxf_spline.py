@@ -102,6 +102,8 @@ class DXFSpline(dxf_entity.DXFEntity):
         nplusc = npts + order
 
         def _rationalBasis(t):
+            # critical path (for some files, 95% of the cpu time is spent in here)
+
             # calculate the first order nonrational basis functions n[i]
             temp = []
             for i in range(1, nplusc):
