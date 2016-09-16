@@ -1,16 +1,18 @@
-# Adapted from dxf2svg.py by David S. Touretzky
-# Computer Science Department, Carnegie Mellon University
-# Released under the GNU GPL3 license.
 
-
-__author__ = 'David S. Touretzky, Stefan Hechenberger <stefan@nortd.com>'
+__author__ = 'David S. Touretzky, Stefan Hechenberger <stefan@nortd.com>, Kevin Loney <kevin.loney@brainsinjars.com>, Andreas Bachmann <andreas.bachmann@fablabwinti.ch>'
 
 
 import math
 import io
+import logging
+import filereaders.dxf.parser.dxf_parser
+
+logging.basicConfig()
+log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
 
 
-
+parser = filereaders.dxf.parser.dxf_parser.DXFParser()
 
 class DXFReader:
     """Parse very simple DXF files with lines, arcs, and lwpolyline.
@@ -53,23 +55,41 @@ class DXFReader:
         #     if self.metricflag != 1:
         #         print "Invalid $MEASUREMENT value!  Assuming metric units."
         #         self.metricflag = 1
-        self.metricflag = 1
 
-        self.readtosection(2, "ENTITIES")
-        while 1:
-            self.readtocode(0)
-            if self.line == "LINE": self.do_line()
-            elif self.line == "CIRCLE": self.do_circle()
-            elif self.line == "ARC": self.do_arc()
-            elif self.line == "LWPOLYLINE": self.do_lwpolyline()
-            elif self.line == "SPLINE": self.complain_spline()
-            elif self.line == "ENDSEC": break
-            else: self.complain_invalid()
+        ###
+        # self.metricflag = 1
+        #
+        # self.readtosection(2, "ENTITIES")
+        # while 1:
+        #     self.readtocode(0)
+        #     if self.line == "LINE": self.do_line()
+        #     elif self.line == "CIRCLE": self.do_circle()
+        #     elif self.line == "ARC": self.do_arc()
+        #     elif self.line == "LWPOLYLINE": self.do_lwpolyline()
+        #     elif self.line == "SPLINE": self.complain_spline()
+        #     elif self.line == "ENDSEC": break
+        #     else: self.complain_invalid()
+        #
+        # self.infile.close()
+        # print "Done!"
+        #
+        #
+        # return {'boundarys':self.boundarys}
 
-        self.infile.close()
-        print("Done!")
-        return {'boundarys':self.boundarys}
+        #l = []
+        #l.append([  50,   50])
+        #l.append([1000,   50])
+        #l.append([1000,  400])
+        #l.append([  50,  400])
+        #l.append([  50,   50])
 
+        #d = {'#000000': [l]}
+        #return {'boundarys': d}
+
+        l = parser.parse(dxfstring, self.tolerance)
+
+        d = {'#000000': l}
+        return {'boundarys': d}
 
     ################
     # Routines to read entries from the DXF file

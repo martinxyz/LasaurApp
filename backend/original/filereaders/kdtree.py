@@ -189,7 +189,7 @@ if __name__ == "__main__":
     class vector(list):
 
         def __init__(self, *args):
-            super().__init__([float(a) for a in args])
+            super(vector, self).__init__([float(a) for a in args])
             
         def __str__(self):
           return "<%.1f %.1f %.1f>"%tuple(self[0:3])
