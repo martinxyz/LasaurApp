@@ -13,15 +13,16 @@ import serial
 import logging
 from tornado.ioloop import IOLoop, PeriodicCallback
 
-## firmware constants, need to match device firmware
-## (maybe they should be reported by the firmware's superstatus)
-TX_CHUNK_SIZE = 16 # number of bytes written to the device in one go
-FIRMBUF_SIZE = 255-1 # the firmware sacrifices one byte to distinguish full from empty
+# firmware constants, need to match device firmware
+# (maybe they should be reported by the firmware's superstatus)
+
+TX_CHUNK_SIZE = 16  # number of bytes written to the device in one go
+FIRMBUF_SIZE = 255-1  # the firmware sacrifices one byte to distinguish full from empty
 RASTER_BYTES_MAX = 60
-PULSE_SECONDS = 31.875e-6 # see laser.c
-MINIMUM_PULSE_TICKS = 3 # unit: PULSE_SECONDS
-MAXIMUM_PULSE_TICKS = 127 # unit: PULSE_SECONDS
-ACCELERATION = 1800000.0 # mm/min^2, divide by (60*60) to get mm/sec^2
+PULSE_SECONDS = 31.875e-6  # see laser.c
+MINIMUM_PULSE_TICKS = 3  # unit: PULSE_SECONDS
+MAXIMUM_PULSE_TICKS = 127  # unit: PULSE_SECONDS
+ACCELERATION = 1800000.0  # mm/min^2, divide by (60*60) to get mm/sec^2
 
 # "import" firmware protocol constants
 markers_tx = {}
@@ -85,7 +86,6 @@ class Driveboard:
 
         # initialize self.status
         self._update_status()
-
 
     def reset_protocol(self):
         self.serial_write_queue.clear()
@@ -312,11 +312,11 @@ class Driveboard:
             'stops': [],  # list of active stop errors, first one first
             'error_report': '',  # either empty, or description of the current problem
 
-            'info':{
+            'info': {
                 'door_open': r.pop(INFO_DOOR_OPEN, False),
                 'chiller_off': r.pop(INFO_CHILLER_OFF, False)
                 },
-            #'offset': [0.0, 0.0, 0.0],  # todo: super-status only; should track changes?
+            # 'offset': [0.0, 0.0, 0.0],  # todo: super-status only; should track changes?
         }
 
         # process everything that was not pop()ed above
@@ -356,9 +356,9 @@ class Driveboard:
                 self.fw_stopped = False
                 self.fw_resuming = True
                 if 'rx_buffer_overflow' in self.status['stops'] or \
-                  'transmission_error' in self.status['stops']:
-                  # need to fix the buffer tracking first
-                  self.reset_protocol()
+                   'transmission_error' in self.status['stops']:
+                    # need to fix the buffer tracking first
+                    self.reset_protocol()
             self._serial_write(bytes([cmd]))
         else:
             self._send_fwbuf(bytes([cmd]))

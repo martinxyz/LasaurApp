@@ -8,7 +8,7 @@ angular.module('app.raster', ['app.core'])
     const PULSE_SECONDS = 31.875e-6;  // see laser.c
     const MINIMUM_PULSE_TICKS = 3;    // unit: PULSE_SECONDS
     const MAXIMUM_PULSE_TICKS = 127;  // unit: PULSE_SECONDS
-    const ACCELERATION = 1800000.0    // mm/min^2, divide by (60*60) to get mm/sec^2
+    const ACCELERATION = 1800000.0;   // mm/min^2, divide by (60*60) to get mm/sec^2
     const BAUDRATE = 57600;
 
     vm.uploadedImage = null;
@@ -29,7 +29,7 @@ angular.module('app.raster', ['app.core'])
         lead_in: 2.0,
         pos_x: 0.0,
         pos_y: 0.0
-    }
+    };
 
     vm.frame_enable = false;
     vm.frame_cut_feedrate = 1500;
@@ -37,7 +37,7 @@ angular.module('app.raster', ['app.core'])
 
     vm.pulse_duration_us = function() {
         return vm.params.pulse * PULSE_SECONDS / 1e-6;
-    }
+    };
 
     vm.recalculate = function() {
         // Current method: (optimized towards bi-level images)
@@ -81,8 +81,8 @@ angular.module('app.raster', ['app.core'])
 
         // limit feedrate such that the driveboard will not slow down to wait for serial data
         var byte_per_second = BAUDRATE/10/2;  // (8 bits + startbit + stopbit) and every byte is sent twice (error detection)
-        byte_per_second *= 0.5  // leave some room for parameters and line commands (just a rough guess)
-        var feedrate_limit2 = byte_per_second / ppmm * 60.0
+        byte_per_second *= 0.5;  // leave some room for parameters and line commands (just a rough guess)
+        var feedrate_limit2 = byte_per_second / ppmm * 60.0;
         feedrate = Math.min(feedrate, feedrate_limit2);
 
         vm.params.raster_feedrate = feedrate;
@@ -116,7 +116,7 @@ angular.module('app.raster', ['app.core'])
 
         vm.height_calculated = vm.params.width/vm.uploadedImage.width*vm.uploadedImage.height;
         vm.height_calculated_pretty = vm.height_calculated.toFixed(1);
-    }
+    };
 
     vm.sendGcode = function(gcode) {
         return $http({
@@ -130,8 +130,8 @@ angular.module('app.raster', ['app.core'])
             vm.submitStatus = 'Error sending gcode to backend.';
             $timeout(function() { vm.submitStatus = ''; }, 3000);
             vm.serverMessage = resp.data;
-        })
-    }
+        });
+    };
 
     vm.sendJob = function () {
         var gcode_raster = RasterLib.makeGcode(vm.params);
@@ -160,7 +160,7 @@ angular.module('app.raster', ['app.core'])
             vm.serverMessage = '';
             vm.sendGcode(gcode);
         });
-    }
+    };
 
     function cutBoxGcode(x0, y0, x1, y1) {
         x0 = x0.toFixed(2);
@@ -196,14 +196,14 @@ angular.module('app.raster', ['app.core'])
 
     vm.goToOrigin = function() {
         vm.sendGcode('G0 X0 Y0 F' + vm.max_feedrate.toFixed(2));
-    }
+    };
 
     vm.pause = function() {
         vm.sendGcode('!pause');
-    }
+    };
     vm.unpause = function() {
         vm.sendGcode('!unpause');
-    }
+    };
 
     // FIXME: status code duplication with admin.js. Maybe turn this into a service?
     vm.status = {};
@@ -283,4 +283,4 @@ angular.module('app.raster', ['app.core'])
             vm.canvas_pulse.modified = 1;
         }
     }
-})
+});
