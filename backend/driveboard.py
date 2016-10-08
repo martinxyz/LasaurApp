@@ -331,13 +331,21 @@ class Driveboard:
             else:
                 logging.warning('unhandled marker_rx %r value %r', name, value)
 
+        # check if driveboard has crashed or disconnected
+        status_report_missing = False
+        if self.device and self.last_status_report < time.time() - 0.5:
+            # Because importing a large job (SVG or DXF) blocks the backend
+            # we only report this error if we requested the status recently.
+            if self.last_status_request < time.time() - 0.5:
+                status_report_missing = True
+
         # generate summary error report
         report = ''
         if not self.device:
             report = 'disconnected from serial port'
             if self.disconnect_reason:
                 report += ' - ' + self.disconnect_reason
-        elif self.last_status_report < time.time() - 0.5:
+        elif status_report_missing:
             report = 'last status update from driveboard is too old'
         elif self.status['stops']:
             stops = self.status['stops']
