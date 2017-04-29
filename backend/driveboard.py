@@ -168,13 +168,18 @@ class Driveboard:
         queue = self.serial_write_queue
         for b in data:
             # by protocol send twice
-            queue.append(b)
-            queue.append(b)
-        if queue:
-            n = self.device.write(queue)
-            #print('tx', repr(queue[:n]))
-            del queue[:n]
-            if queue:
+            self.serial_write_queue.append(b)
+            self.serial_write_queue.append(b)
+        if self.serial_write_queue:
+            n = self.device.write(self.serial_write_queue)
+
+            # del self.serial_write_queue[:n]
+            #
+            # workaround for Python 3.4.2 bug
+            # (bytearray del[] bug http://bugs.python.org/issue23985)
+            self.serial_write_queue = self.serial_write_queue[n:]
+
+            if self.serial_write_queue:
                 # usually never reached (because fw_buffer < serial_buffer)
                 #logging.warning('%d bytes still waiting in queue after tx', len(queue))
                 self.io_loop.update_handler(self.device, IOLoop.READ | IOLoop.WRITE)
@@ -188,7 +193,13 @@ class Driveboard:
 
         # for error diagnostics
         self.read_hist.extend(data)
-        del self.read_hist[:-80]
+        # del self.read_hist[:-80]
+        #
+        # workaround for Python 3.4.2 bug
+        # (bytearray del[] bug http://bugs.python.org/issue23985)
+        # self.read_hist.extend(data)
+        self.read_hist = self.read_hist[-80:]
+
         print_hist = False
 
         for byte in data:
@@ -412,7 +423,11 @@ class Driveboard:
 
         if available > 0 and self.firmbuf_queue:
             out = self.firmbuf_queue[:available]
-            del self.firmbuf_queue[:available]
+            # del self.firmbuf_queue[:available]
+            #
+            # workaround for Python 3.4.2 bug
+            # (bytearray del[] bug http://bugs.python.org/issue23985)
+            self.firmbuf_queue = self.firmbuf_queue[available:]
             self.firmbuf_used += len(out)
             self._serial_write(out)
 
