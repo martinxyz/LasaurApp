@@ -11,7 +11,6 @@ from tornado import gen
 import build
 import flash
 
-
 class GcodeTCPServer(tornado.tcpserver.TCPServer):
     """TCP server with a line oriented gcode protocol
     """
@@ -26,6 +25,7 @@ class GcodeTCPServer(tornado.tcpserver.TCPServer):
             stream.write((self.board.version + '\n').encode('utf-8'))
             while True:
                 line = yield stream.read_until(b'\n')
+                yield gen.moment
                 line = line.decode('utf-8', 'ignore').strip()
                 if line:
                     resp = self.board.gcode_line(line) + '\n'
@@ -132,6 +132,8 @@ class GcodeHandler(tornado.web.RequestHandler):
         gcode = self.request.body
         # note: some code duplication with GcodeTCPServer
         for line in gcode.split(b'\n'):
+            # FIMXE: should be coroutine and add:
+            # yield gen.moment
             line = line.decode('utf-8', 'ignore').strip()
             if line:
                 resp = self.board.gcode_line(line) + '\n'
