@@ -88,6 +88,11 @@ class DriveboardGcode:
         if not self.driveboard.is_connected():
             return 'error:' + self.driveboard.get_disconnect_reason()
 
+        if self.driveboard.fw_stopped:
+            # firmware is discarding all queue commands, purging the current jobdata
+            # so don't waste time parsing it
+            return 'ok'
+
         args = {}
 
         # parse and remove raster data

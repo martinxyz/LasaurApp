@@ -1,5 +1,5 @@
 """
-Connect (and send gcode) to the websocket of the new backend.
+Connect (and send gcode) to the tcp socket of the new backend.
 """
 
 import sys
