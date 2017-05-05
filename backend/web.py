@@ -169,10 +169,11 @@ class WSHandler(tornado.websocket.WebSocketHandler):
                 self.on_gcode(line)
 
     def on_gcode(self, line):
-        print('executing gcode: %r' % line)
-        resp = self.board.gcode_line(line)
-        if resp.startswith('error:'):
-            logging.warning(resp[6:])
+        logging.warning('not executing gcode via websocket: %r' % line)
+        return
+        # resp = self.board.gcode_line(line)
+        # if resp.startswith('error:'):
+        #     logging.warning(resp[6:])
 
     def check_origin(self, origin):
         # TODO: this is bad; we don't really want javascript from
