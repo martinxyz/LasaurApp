@@ -348,15 +348,15 @@ def job_submit_handler():
         return "serial disconnected"
 
 
-@route('/queue_pct_done')
-def queue_pct_done_handler():
-    status = SerialManager.get_hardware_status()
-    percent = status['queue']['job_percent']
-    idle = status['ready']
-    if idle and percent == 100.0:
-        return ''
-    else:
-        return str(percent)
+# @route('/queue_pct_done')
+# def queue_pct_done_handler():
+#     status = SerialManager.get_hardware_status()
+#     percent = status['queue']['job_percent']
+#     idle = status['ready']
+#     if idle and percent == 100.0:
+#         return ''
+#     else:
+#         return str(percent)
 
 
 

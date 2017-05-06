@@ -78,7 +78,7 @@ function send_gcode(gcode, success_msg, progress) {
             if (progress == true) {
               // show progress bar, register live updates
               if ($("#progressbar").children().first().width() == 0) {
-                $("#progressbar").children().first().width('5%');
+                $("#progressbar").children().first().width('2%');
                 $("#progressbar").show();
                 progress_not_yet_done_flag = true;
                 setTimeout(update_progress, 2000);
@@ -105,11 +105,16 @@ function send_gcode(gcode, success_msg, progress) {
 
 
 function update_progress() {
-  $.get('/queue_pct_done', function(data) {
-    if (data.length > 0) {
-      var pct = parseInt(data);
+  // old API has an issue: it takes more than 2s to update its status if sending a big job
+  // var api = '/queue_pct_done';
+  var api = 'http://' + window.location.hostname + ':5555/status';
+  $.get(api, function(data) {
+    var pct = data.queue.job_percent;
+    var busy = !data.ready;
+    if (pct != 100 || busy) {
       $("#progressbar").show();
-      $("#progressbar").children().first().width(pct+'%');
+      var pct_gui = 2 + pct/100*94;
+      $("#progressbar").children().first().width(pct_gui+'%');
       setTimeout(update_progress, 2000);
     } else {
       if (progress_not_yet_done_flag) {

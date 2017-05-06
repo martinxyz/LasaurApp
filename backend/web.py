@@ -75,6 +75,9 @@ class FirmwareHandler(tornado.web.RequestHandler):
 class StatusHandler(tornado.web.RequestHandler):
     """HTTP status requests
     """
+    def set_default_headers(self):
+        self.set_header("Access-Control-Allow-Origin", "*")
+
     def initialize(self, board):
         self.board = board
 
