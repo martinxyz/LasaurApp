@@ -303,7 +303,7 @@ class Driveboard:
             'firmver': self.firmver,
             'ready': r.pop(INFO_IDLE_YES, False) and not self.firmbuf_queue,
             'paused': self.paused,
-            'serial': bool(self.device),
+            'serial_connected': bool(self.device),
             # 'progress': TODO, # if self.job_size == 0: self._status['progress'] = 1.0 else: self._status['progress'] = round(SerialLoop.tx_pos/float(SerialLoop.job_size),3)
             'queue': {
                 'firmbuf': self.firmbuf_used,
@@ -364,6 +364,11 @@ class Driveboard:
             if len(stops) > 1:
                 report += ' (and also ' + ' '.join(stops[1:]) + ')'
         self.status['error_report'] = report
+
+        previous_report = getattr(self, 'previous_error_report', '')
+        if previous_report != report:
+            self.previous_error_report = report
+            logging.warning('error_report changed: %r --> %r', previous_report, report)
 
         # TODO maybe: push notifications to websocket right away
 

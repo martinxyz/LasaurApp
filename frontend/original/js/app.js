@@ -1,7 +1,7 @@
+var new_api = 'http://' + window.location.hostname + ':5555';
 
 var hardware_ready_state = false;
 var firmware_version_reported = false;
-var lasaurapp_version_reported = false;
 var progress_not_yet_done_flag = false;
 var previous_error_report = '';
 var stop_and_resume_in_progress = false;
@@ -61,35 +61,38 @@ function send_gcode(gcode, success_msg, progress) {
   }
   // if (hardware_ready_state || gcode[0] == '!' || gcode[0] == '~') {
   if (true) {
-    if (typeof gcode === "string" && gcode != '') {
+    if (typeof gcode === 'string' && gcode != '') {
       // $().uxmessage('notice', gcode, Infinity);
       $.ajax({
-        type: "POST",
-        url: "/gcode",
-        data: {'job_data':gcode},
-        // dataType: "json",
+        type: 'POST',
+        url: new_api + '/gcode',
+        contentType: 'text/plain',
+        data: gcode,
         success: function (data) {
-          if (data == "__ok__") {
-            if (previous_error_report && gcode[0] != '!' && gcode[0] != '~') {
-              $().uxmessage('error', 'Error unresolved: ' + previous_error_report);
-            }
-            $().uxmessage('success', success_msg);
+          if (previous_error_report && gcode[0] != '!' && gcode[0] != '~') {
+            $().uxmessage('error', 'Error unresolved: ' + previous_error_report);
+          }
+          $().uxmessage('success', success_msg);
 
-            if (progress == true) {
-              // show progress bar, register live updates
-              if ($("#progressbar").children().first().width() == 0) {
-                $("#progressbar").children().first().width('2%');
-                $("#progressbar").show();
-                progress_not_yet_done_flag = true;
-                setTimeout(update_progress, 2000);
-              }
+          if (progress == true) {
+            // show progress bar, register live updates
+            if ($("#progressbar").children().first().width() == 0) {
+              $("#progressbar").children().first().width('2%');
+              $("#progressbar").show();
+              progress_not_yet_done_flag = true;
+              setTimeout(update_progress, 2000);
             }
-          } else {
-            $().uxmessage('error', "Backend error: " + data);
           }
         },
         error: function (data) {
-          $().uxmessage('error', "Timeout. LasaurApp server down?");
+          // gcode parser errors
+          // XXXX not any more
+          // if (gcode_error) {
+          //   $().uxmessage('error', gcode_error);
+          // }
+          $().uxmessage('error', "Backend error: " + data);
+          console.log(data);
+          $().uxmessage('error', "Error posting gcode. LasaurApp server down?");
         },
         complete: function (data) {
           // future use
@@ -105,10 +108,7 @@ function send_gcode(gcode, success_msg, progress) {
 
 
 function update_progress() {
-  // old API has an issue: it takes more than 2s to update its status if sending a big job
-  // var api = '/queue_pct_done';
-  var api = 'http://' + window.location.hostname + ':5555/status';
-  $.get(api, function(data) {
+  $.get(new_api + '/status', function(data) {
     var pct = data.queue.job_percent;
     var busy = !data.ready;
     if (pct != 100 || busy) {
@@ -181,7 +181,8 @@ function generate_download(filename, filedata) {
       window.open("/download/" + data + "/" + filename, '_blank');
     },
     error: function (data) {
-      $().uxmessage('error', "Timeout. LasaurApp server down?");
+      console.log(data);
+      $().uxmessage('error', "Error. LasaurApp server down?");
     },
     complete: function (data) {
       // future use
@@ -198,14 +199,18 @@ function generate_download(filename, filedata) {
 $(document).ready(function(){
   
   $().uxmessage('notice', "Frontend started.");
-  
+
+  $.getJSON('/version', function(data) {
+    $().uxmessage('notice', "LasaurApp v" + data.VERSION);
+    $('#lasaurapp_version').html(data.VERSION);
+  });
+
   $('#feedrate_field').val(app_settings.max_seek_speed);
 
   $('#tab_logs_button').click(function(){
     $('#log_content').show()
     $('#tab_logs div.alert').show()
-  })
-
+  });
 
   //////// serial connect and pause button ////////
   var connect_btn_state = false;
@@ -250,9 +255,9 @@ $(document).ready(function(){
         }
       }
     }
-    $.getJSON('/status', function(data) {
+    $.getJSON(new_api + '/status', function(status) {
       // pause status
-      if (data.paused) {
+      if (status.paused) {
         pause_btn_state = true;
         $("#pause_btn").addClass("btn-primary");
         $("#pause_btn").html('<i class="icon-play"></i>');
@@ -262,32 +267,27 @@ $(document).ready(function(){
         $("#pause_btn").removeClass("btn-primary");
         $("#pause_btn").html('<i class="icon-pause"></i>');
       }
-      // serial connected
-      if (data.serial) {
+
+      if (status.serial_connected) {
         connect_btn_set_state(true);
       } else {
         connect_btn_set_state(false);
       }
 
       // ready state
-      if (data.ready) {
+      if (status.ready) {
         hardware_ready_state = true;
         $("#connect_btn").html("Ready");
       } else {
-        if (data.serial_connected) {
+        if (status.serial_connected) {
           $("#connect_btn").html("Busy");
         }
         hardware_ready_state = false;
       }
 
-      // gcode parser errors
-      if (data.gcode_error) {
-        $().uxmessage('error', data.gcode_error);
-      }
-
       // door, chiller, power, limit, buffer
-      if (data.serial) {
-        if (data.info.door_open) {
+      if (status.serial_connected) {
+        if (status.info.door_open) {
           $('#door_status_btn').removeClass('btn-success')
           $('#door_status_btn').addClass('btn-warning')
           // $().uxmessage('warning', "Door is open!");
@@ -295,7 +295,7 @@ $(document).ready(function(){
           $('#door_status_btn').removeClass('btn-warning')
           $('#door_status_btn').addClass('btn-success')
         }
-        if (data.info.chiller_off) {
+        if (status.info.chiller_off) {
           $('#chiller_status_btn').removeClass('btn-success')
           $('#chiller_status_btn').addClass('btn-warning')
           // $().uxmessage('warning', "Chiller is off!");
@@ -303,18 +303,18 @@ $(document).ready(function(){
           $('#chiller_status_btn').removeClass('btn-warning')
           $('#chiller_status_btn').addClass('btn-success')
         }
-        // if (data.power_off) {
+        // if (status.power_off) {
         //   $().uxmessage('error', "Power is off!");
         //   $().uxmessage('notice', "Turn on Lasersaur power then run homing cycle to reset.");
         // }
-        if (data.pos.x && data.pos.y) {
+        if (status.pos.x && status.pos.y) {
           // only update if not manually entering at the same time
           if (!$('#x_location_field').is(":focus") &&
               !$('#y_location_field').is(":focus") &&
               !$('#location_set_btn').is(":focus") &&
               !$('#origin_set_btn').is(":focus"))
           {
-            var x = parseFloat(data.pos.x).toFixed(2)/1;
+            var x = parseFloat(status.pos.x).toFixed(2)/1;
             $('#x_location_field').val(x.toFixed(2));
             $('#x_location_field').animate({
               opacity: 0.5
@@ -323,7 +323,7 @@ $(document).ready(function(){
                 opacity: 1.0
               }, 600, function() {});
             });
-            var y = parseFloat(data.pos.y).toFixed(2)/1;
+            var y = parseFloat(status.pos.y).toFixed(2)/1;
             $('#y_location_field').val(y.toFixed(2));
             $('#y_location_field').animate({
               opacity: 0.5
@@ -334,18 +334,13 @@ $(document).ready(function(){
             });
           }
         }
-        if (data.firmver && !firmware_version_reported) {
-          $().uxmessage('notice', "Firmware v" + data.firmver);
-          $('#firmware_version').html(data.firmware_version);
+        if (status.firmver && !firmware_version_reported) {
+          $().uxmessage('notice', "Firmware v" + status.firmver);
+          $('#firmware_version').html(status.firmver);
           firmware_version_reported = true;
         }
       }
-      if (data.lasaurapp_version && !lasaurapp_version_reported) {
-        $().uxmessage('notice', "LasaurApp v" + data.lasaurapp_version);
-        $('#lasaurapp_version').html(data.lasaurapp_version);
-        lasaurapp_version_reported = true;
-      }
-      var msg = data.error_report;
+      var msg = status.error_report;
       if (stop_and_resume_in_progress) {
         // known cause, don't report
         if (msg === 'stopped - serial_stop_request') {

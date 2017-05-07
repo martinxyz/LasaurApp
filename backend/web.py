@@ -3,37 +3,11 @@ import logging
 import tornado.options
 import tornado.web
 import tornado.websocket
-import tornado.tcpserver
-#from tornado.escape import json_encode, json_decode
 from tornado.ioloop import PeriodicCallback
 from tornado import gen
 
 import build
 import flash
-
-class GcodeTCPServer(tornado.tcpserver.TCPServer):
-    """TCP server with a line oriented gcode protocol
-    """
-    def __init__(self, board, **args):
-        self.board = board
-        super(GcodeTCPServer, self).__init__(**args)
-
-    @gen.coroutine
-    def handle_stream(self, stream, address):
-        logging.info('incoming "gcode over tcp" connection from %r', address)
-        try:
-            stream.write((self.board.version + '\n').encode('utf-8'))
-            while True:
-                line = yield stream.read_until(b'\n')
-                yield gen.moment
-                line = line.decode('utf-8', 'ignore').strip()
-                if line:
-                    resp = self.board.gcode_line(line) + '\n'
-                    if resp.startswith('error:'):
-                        logging.warning(resp[6:])
-                    stream.write(resp.encode('utf-8'))
-        except tornado.iostream.StreamClosedError:
-            logging.info('closed "gcode over tcp" by client %r', address)
 
 class FirmwareHandler(tornado.web.RequestHandler):
     """HTTP Build and flash API
@@ -131,55 +105,24 @@ class GcodeHandler(tornado.web.RequestHandler):
     def initialize(self, board):
         self.board = board
 
+    def set_default_headers(self):
+        self.set_header("Access-Control-Allow-Origin", "*")
+
     def post(self):
+        content_type = self.request.headers.get('Content-Type')
+        if not content_type.startswith('text'):
+            raise tornado.web.HTTPError(400, 'gcode POST handler supports only text/plain content-type')
         gcode = self.request.body
-        # note: some code duplication with GcodeTCPServer
+        # TODO: stop at first gcode error, e.g. at '{' if posting json (also, if line is longer than 1000 chars?)
         for line in gcode.split(b'\n'):
             # FIMXE: should be coroutine and add:
             # yield gen.moment
-            line = line.decode('utf-8', 'ignore').strip()
+            # -    status['gcode_error'] = SerialManager.pop_gcode_error()
+            line = line.decode('utf-8', 'ignore').strip()  # FIXME: why bother decoding it? Just keep it bytes.
             if line:
                 resp = self.board.gcode_line(line) + '\n'
                 if resp.startswith('error:'):
-                    errors = True
                     logging.warning(resp[6:])
                 # TODO: Not sure if this non-json response is useful for javascript.
                 #       Should probably also return HTTP error if disconnected, etc.
                 self.write(resp.encode('utf-8'))
-
-class WSHandler(tornado.websocket.WebSocketHandler):
-    clients = set()
-
-    def initialize(self, board):
-        self.board = board
-
-    def get_compression_options(self):
-        # Non-None enables compression with default options.
-        return {}
-
-    def open(self):
-        logging.info('The port-gate is open!')
-        WSHandler.clients.add(self)
-
-    def on_close(self):
-        logging.info('The port-gate is closed.')
-        WSHandler.clients.remove(self)
-
-    def on_message(self, message):
-        logging.info("got message %r", message)
-        for line in message.split('\n'):
-            if line:
-                self.on_gcode(line)
-
-    def on_gcode(self, line):
-        logging.warning('not executing gcode via websocket: %r' % line)
-        return
-        # resp = self.board.gcode_line(line)
-        # if resp.startswith('error:'):
-        #     logging.warning(resp[6:])
-
-    def check_origin(self, origin):
-        # TODO: this is bad; we don't really want javascript from
-        # random websites to use our machine?
-        # In addition, we also should require authentication.
-        return True
