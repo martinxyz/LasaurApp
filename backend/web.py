@@ -9,12 +9,14 @@ from tornado import gen
 import build
 import flash
 
+
 class FirmwareHandler(tornado.web.RequestHandler):
     """HTTP Build and flash API
     """
     def initialize(self, board, conf):
         self.board = board
         self.conf = conf
+
     def post(self, action):
         if action == 'build':
             try:
@@ -46,6 +48,7 @@ class FirmwareHandler(tornado.web.RequestHandler):
         else:
             self.set_status(501, 'not implemented')
 
+
 class StatusHandler(tornado.web.RequestHandler):
     """HTTP status requests
     """
@@ -57,6 +60,7 @@ class StatusHandler(tornado.web.RequestHandler):
 
     def get(self):
         self.write(self.board.get_status())
+
 
 class StatusWebsocket(tornado.websocket.WebSocketHandler):
     """Websocket for status updates (to avoid HTTP GET polling)
@@ -88,10 +92,12 @@ class StatusWebsocket(tornado.websocket.WebSocketHandler):
     def check_origin(self, origin):
         return True  # anyone may listen to status changes
 
+
 class ConfigHandler(tornado.web.RequestHandler):
     def initialize(self, board, conf):
         self.board = board
         self.conf = conf
+
     def get(self):
         c = self.conf
         res = dict(
@@ -101,6 +107,8 @@ class ConfigHandler(tornado.web.RequestHandler):
             )
         self.write(res)
 
+
+@tornado.web.stream_request_body
 class GcodeHandler(tornado.web.RequestHandler):
     def initialize(self, board):
         self.board = board
@@ -108,21 +116,37 @@ class GcodeHandler(tornado.web.RequestHandler):
     def set_default_headers(self):
         self.set_header("Access-Control-Allow-Origin", "*")
 
-    def post(self):
-        content_type = self.request.headers.get('Content-Type')
-        if not content_type.startswith('text'):
+    def prepare(self):
+        mtype = self.request.headers.get('Content-Type')
+        if not mtype.startswith('text'):
             raise tornado.web.HTTPError(400, 'gcode POST handler supports only text/plain content-type')
-        gcode = self.request.body
-        # TODO: stop at first gcode error, e.g. at '{' if posting json (also, if line is longer than 1000 chars?)
-        for line in gcode.split(b'\n'):
-            # FIMXE: should be coroutine and add:
-            # yield gen.moment
-            # -    status['gcode_error'] = SerialManager.pop_gcode_error()
-            line = line.decode('utf-8', 'ignore').strip()  # FIXME: why bother decoding it? Just keep it bytes.
-            if line:
-                resp = self.board.gcode_line(line) + '\n'
-                if resp.startswith('error:'):
-                    logging.warning(resp[6:])
-                # TODO: Not sure if this non-json response is useful for javascript.
-                #       Should probably also return HTTP error if disconnected, etc.
-                self.write(resp.encode('utf-8'))
+        self.unprocessed = b''
+        self.error = None
+
+    @gen.coroutine
+    def data_received(self, chunk):
+        self.unprocessed += chunk
+        lines = self.unprocessed.split(b'\n')
+        self.unprocessed = lines.pop()  # incomplete line
+        for line in lines:
+            # stay responsive to status updates
+            yield gen.moment
+            self.process_one_line(line)
+
+    def process_one_line(self, line):
+        if self.error:
+            return
+        line = line.decode('utf-8', 'ignore').strip()
+        if line:
+            resp = self.board.gcode_line(line)
+            if resp.startswith('error:'):
+                logging.warning(resp[6:])
+                self.error = resp[6:]
+
+    def post(self):
+        # execute final piece if newline was missing
+        self.process_one_line(self.unprocessed)
+
+        if self.error:
+            self.set_status(400)
+            self.write({'gcode_error': self.error})
