@@ -213,24 +213,14 @@ $(document).ready(function(){
   });
 
   //////// serial connect and pause button ////////
-  var connect_btn_state = false;
-  var connect_btn_in_hover = false;
   var pause_btn_state = false;
 
   function connect_btn_set_state(is_connected) {
     if (is_connected) {
-      connect_btn_state = true
-      if (!connect_btn_in_hover) {
-        $("#connect_btn").html("Connected");
-      }
       $("#connect_btn").removeClass("btn-danger");
       $("#connect_btn").removeClass("btn-warning");
       $("#connect_btn").addClass("btn-success");      
     } else {
-      connect_btn_state = false
-      if (!connect_btn_in_hover) {
-        $("#connect_btn").html("Disconnected");
-      }   
       $("#connect_btn").removeClass("btn-danger");
       $("#connect_btn").removeClass("btn-success");
       $("#connect_btn").addClass("btn-warning");     
@@ -369,53 +359,6 @@ $(document).ready(function(){
 
   connect_btn_width = $("#connect_btn").innerWidth();
   $("#connect_btn").width(connect_btn_width);
-  $("#connect_btn").click(function(e){  
-    if (connect_btn_state == true) {
-      $.get('/serial/0', function(data) {
-        if (data != "") {
-          connect_btn_set_state(false);   
-        } else {
-          // was already disconnected
-          connect_btn_set_state(false);
-        }
-        $("#connect_btn").html("Disconnected");
-      });
-    } else {
-      $("#connect_btn").html('Connecting...');
-      $.get('/serial/1', function(data) {
-        if (data != "") {
-          connect_btn_set_state(true);
-          $("#connect_btn").html("Connected");      
-        } else {
-          // failed to connect
-          connect_btn_set_state(false);
-          $("#connect_btn").removeClass("btn-warning");
-          $("#connect_btn").addClass("btn-danger");  
-        }   
-      });
-    } 
-    e.preventDefault();   
-  }); 
-  $("#connect_btn").hover(
-    function () {
-      connect_btn_in_hover = true;
-      if (connect_btn_state) {
-        $(this).html("Disconnect");
-      } else {
-        $(this).html("Connect");
-      }
-      $(this).width(connect_btn_width);
-    }, 
-    function () {
-      connect_btn_in_hover = false;
-      if (connect_btn_state) {
-        $(this).html("Connected");
-      } else {
-        $(this).html("Disconnected");
-      }
-      $(this).width(connect_btn_width);      
-    }
-  );
 
   $("#pause_btn").tooltip({placement:'bottom', delay: {show:500, hide:100}});
   $("#pause_btn").click(function(e){  
