@@ -13,9 +13,9 @@ from filereaders import read_svg, read_dxf, read_ngc
 
 
 APPNAME = "lasaurapp"
-VERSION = "16.05 (pulseraster branch)"
+VERSION = "17.05 (pulseraster branch)"
 COMPANY_NAME = "com.nortd.labs"
-COOKIE_KEY = 'secret_key_jkn23489hsdf'
+# COOKIE_KEY = 'secret_key_jkn23489hsdf'
 TOLERANCE = 0.08
 
 
