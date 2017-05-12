@@ -63,36 +63,36 @@ function send_gcode(gcode, success_msg, progress) {
   if (true) {
     if (typeof gcode === 'string' && gcode != '') {
       // $().uxmessage('notice', gcode, Infinity);
+
+      if (progress == true) {
+        // show progress bar, register live updates
+        if ($("#progressbar").children().first().width() == 0) {
+          $("#progressbar").children().first().width('2%');
+          $("#progressbar").show();
+          progress_not_yet_done_flag = true;
+          setTimeout(update_progress, 2000);
+        }
+      }
+
       $.ajax({
         type: 'POST',
         url: new_api + '/gcode',
         contentType: 'text/plain',
         data: gcode,
+        dataType: 'json',
         success: function (data) {
           if (previous_error_report && gcode[0] != '!' && gcode[0] != '~') {
             $().uxmessage('error', 'Error unresolved: ' + previous_error_report);
           }
           $().uxmessage('success', success_msg);
-
-          if (progress == true) {
-            // show progress bar, register live updates
-            if ($("#progressbar").children().first().width() == 0) {
-              $("#progressbar").children().first().width('2%');
-              $("#progressbar").show();
-              progress_not_yet_done_flag = true;
-              setTimeout(update_progress, 2000);
-            }
-          }
         },
         error: function (data) {
-          // gcode parser errors
-          // XXXX not any more
-          // if (gcode_error) {
-          //   $().uxmessage('error', gcode_error);
-          // }
-          $().uxmessage('error', "Backend error: " + data);
+          if (data.responseText) {
+            $().uxmessage('error', 'Error posting gcode: ' + data.responseText);
+          } else {
+            $().uxmessage('error', 'Error posting gcode. LasaurApp server down?');
+          }
           console.log(data);
-          $().uxmessage('error', "Error posting gcode. LasaurApp server down?");
         },
         complete: function (data) {
           // future use

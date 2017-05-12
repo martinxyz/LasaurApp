@@ -149,4 +149,4 @@ class GcodeHandler(tornado.web.RequestHandler):
 
         if self.error:
             self.set_status(400)
-            self.write({'gcode_error': self.error})
+            self.write(self.error)

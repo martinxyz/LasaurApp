@@ -107,12 +107,12 @@ class DriveboardGcode:
         # extract gcode parameters
         parts = re.split(r'([A-Z])', line)
         if parts[0] != '' or len(parts) < 3:
-            return 'error:ignored unknown gcode %r' % line
+            return 'error:unknown gcode %r' % line
         try:
             # this way, we support both G00 and G0
             cmd = (parts[1] + str(int(parts[2]))).strip()
         except ValueError:
-            return 'error:gcode line ignored, could not parse int in %r' % line
+            return 'error:could not parse int in %r' % line
         parts = parts[3:]
 
         while parts:
@@ -120,7 +120,7 @@ class DriveboardGcode:
             try:
                 value = float(parts.pop(0))
             except ValueError:
-                return 'error:gcode line ignored, could not parse float in %r' % line
+                return 'error:could not parse float in %r' % line
             args[letter] = value
 
         # result of parsing
