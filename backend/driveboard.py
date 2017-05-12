@@ -165,7 +165,16 @@ class Driveboard:
         if not self.device:
             logging.warning('write ignored (device closed)')
             return
-        queue = self.serial_write_queue
+
+        if False:  # debug
+            def pretty(i):
+                if i < 128:
+                    return i
+                else:
+                    return ord('^')
+            data_pretty = bytes(pretty(i) for i in data)
+            logging.info('_serial_write %r', data_pretty)
+
         for b in data:
             # by protocol send twice
             self.serial_write_queue.append(b)
@@ -442,7 +451,7 @@ class Driveboard:
             self.last_status_request = time.time()
 
     def _on_startup_greeting(self, value):
-        if abs(value - 123.456) < 0.001:
+        if abs(value - 200.456) < 0.001:
             if self.greeting_timeout is not None:
                 self.io_loop.remove_timeout(self.greeting_timeout)
                 self.greeting_timeout = None
