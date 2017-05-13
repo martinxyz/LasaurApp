@@ -368,33 +368,14 @@ $(document).ready(function(){
   $("#connect_btn").width(connect_btn_width);
 
   $("#pause_btn").tooltip({placement:'bottom', delay: {show:500, hide:100}});
-  $("#pause_btn").click(function(e){  
+  $("#pause_btn").click(function(e){
+    console.log('click stat', pause_btn_state)
     if (pause_btn_state == true) {  // unpause
-      $.get('/pause/0', function(data) {
-        if (data == '0') {
-          pause_btn_state = false;
-          $("#pause_btn").removeClass('btn-primary');
-          $("#pause_btn").removeClass('btn-warning');
-          $("#pause_btn").html('<i class="icon-pause"></i>');
-          $().uxmessage('notice', "Continuing...");
-        }
-      });
+      send_gcode('!unpause', 'Continuing...', false);
     } else {  // pause
       $("#pause_btn").addClass('btn-warning');
-      $.get('/pause/1', function(data) {
-        if (data == "1") {
-          pause_btn_state = true;
-          $("#pause_btn").removeClass("btn-warning");
-          $("#pause_btn").addClass('btn-primary');
-          $("#pause_btn").html('<i class="icon-play"></i>');
-          $().uxmessage('notice', "Pausing in a bit...");
-        } else if (data == '0') {
-          $("#pause_btn").removeClass("btn-warning");
-          $("#pause_btn").removeClass("btn-primary");
-          $().uxmessage('notice', "Not pausing...");
-        }   
-      });
-    } 
+      send_gcode('!pause', 'Pausing in a bit...', false);
+    }
     e.preventDefault();   
   }); 
   //\\\\\\ serial connect and pause button \\\\\\\\
