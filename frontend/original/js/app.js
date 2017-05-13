@@ -228,6 +228,7 @@ $(document).ready(function(){
   }
     
   // get hardware status
+  var previous_status = {};
   function poll_hardware_status() {
     function report_error(error_report) {
       if (error_report != previous_error_report) {
@@ -246,108 +247,114 @@ $(document).ready(function(){
       }
     }
     $.getJSON(new_api + '/status', function(status) {
-      // pause status
-      if (status.paused) {
-        pause_btn_state = true;
-        $("#pause_btn").addClass("btn-primary");
-        $("#pause_btn").html('<i class="icon-play"></i>');
-      } else {
-        pause_btn_state = false;
-        $("#pause_btn").removeClass("btn-warning");
-        $("#pause_btn").removeClass("btn-primary");
-        $("#pause_btn").html('<i class="icon-pause"></i>');
-      }
+      // avoid flickering GUI elements while idle
+      if (JSON.stringify(status) !== JSON.stringify(previous_status)) {
+        previous_status = status;
 
-      if (status.serial_connected) {
-        connect_btn_set_state(true);
-      } else {
-        connect_btn_set_state(false);
-      }
+        // pause status
+        if (status.paused) {
+          pause_btn_state = true;
+          $("#pause_btn").addClass("btn-primary");
+          $("#pause_btn").html('<i class="icon-play"></i>');
+        } else {
+          pause_btn_state = false;
+          $("#pause_btn").removeClass("btn-warning");
+          $("#pause_btn").removeClass("btn-primary");
+          $("#pause_btn").html('<i class="icon-pause"></i>');
+        }
 
-      // ready state
-      if (status.ready) {
-        hardware_ready_state = true;
-        $("#connect_btn").html("Ready");
-      } else {
         if (status.serial_connected) {
-          $("#connect_btn").html("Busy");
+          connect_btn_set_state(true);
+        } else {
+          connect_btn_set_state(false);
         }
-        hardware_ready_state = false;
-      }
 
-      // door, chiller, power, limit, buffer
-      if (status.serial_connected) {
-        if (status.info.door_open) {
-          $('#door_status_btn').removeClass('btn-success')
-          $('#door_status_btn').addClass('btn-warning')
-          // $().uxmessage('warning', "Door is open!");
+        // ready state
+        if (status.ready) {
+          hardware_ready_state = true;
+          $("#connect_btn").html("Ready");
         } else {
-          $('#door_status_btn').removeClass('btn-warning')
-          $('#door_status_btn').addClass('btn-success')
+          if (status.serial_connected) {
+            $("#connect_btn").html("Busy");
+          }
+          hardware_ready_state = false;
         }
-        if (status.info.chiller_off) {
-          $('#chiller_status_btn').removeClass('btn-success')
-          $('#chiller_status_btn').addClass('btn-warning')
-          // $().uxmessage('warning', "Chiller is off!");
-        } else {
-          $('#chiller_status_btn').removeClass('btn-warning')
-          $('#chiller_status_btn').addClass('btn-success')
-        }
-        // if (status.power_off) {
-        //   $().uxmessage('error', "Power is off!");
-        //   $().uxmessage('notice', "Turn on Lasersaur power then run homing cycle to reset.");
-        // }
-        if (status.pos.x && status.pos.y) {
-          // only update if not manually entering at the same time
-          if (!$('#x_location_field').is(":focus") &&
-              !$('#y_location_field').is(":focus") &&
-              !$('#location_set_btn').is(":focus") &&
-              !$('#origin_set_btn').is(":focus"))
-          {
-            var x = parseFloat(status.pos.x).toFixed(2)/1;
-            $('#x_location_field').val(x.toFixed(2));
-            $('#x_location_field').animate({
-              opacity: 0.5
-            }, 100, function() {
+
+        // door, chiller, power, limit, buffer
+        if (status.serial_connected) {
+          if (status.info.door_open) {
+            $('#door_status_btn').removeClass('btn-success')
+            $('#door_status_btn').addClass('btn-warning')
+            // $().uxmessage('warning', "Door is open!");
+          } else {
+            $('#door_status_btn').removeClass('btn-warning')
+            $('#door_status_btn').addClass('btn-success')
+          }
+          if (status.info.chiller_off) {
+            $('#chiller_status_btn').removeClass('btn-success')
+            $('#chiller_status_btn').addClass('btn-warning')
+            // $().uxmessage('warning', "Chiller is off!");
+          } else {
+            $('#chiller_status_btn').removeClass('btn-warning')
+            $('#chiller_status_btn').addClass('btn-success')
+          }
+          // if (status.power_off) {
+          //   $().uxmessage('error', "Power is off!");
+          //   $().uxmessage('notice', "Turn on Lasersaur power then run homing cycle to reset.");
+          // }
+          if (status.pos.x && status.pos.y) {
+            // only update if not manually entering at the same time
+            if (!$('#x_location_field').is(":focus") &&
+                !$('#y_location_field').is(":focus") &&
+                !$('#location_set_btn').is(":focus") &&
+                !$('#origin_set_btn').is(":focus"))
+            {
+              var x = parseFloat(status.pos.x).toFixed(2)/1;
+              $('#x_location_field').val(x.toFixed(2));
               $('#x_location_field').animate({
-                opacity: 1.0
-              }, 600, function() {});
-            });
-            var y = parseFloat(status.pos.y).toFixed(2)/1;
-            $('#y_location_field').val(y.toFixed(2));
-            $('#y_location_field').animate({
-              opacity: 0.5
-            }, 100, function() {
+                opacity: 0.5
+              }, 100, function() {
+                $('#x_location_field').animate({
+                  opacity: 1.0
+                }, 600, function() {});
+              });
+              var y = parseFloat(status.pos.y).toFixed(2)/1;
+              $('#y_location_field').val(y.toFixed(2));
               $('#y_location_field').animate({
-                opacity: 1.0
-              }, 600, function() {});
-            });
+                opacity: 0.5
+              }, 100, function() {
+                $('#y_location_field').animate({
+                  opacity: 1.0
+                }, 600, function() {});
+              });
+            }
+          }
+          if (status.firmver && !firmware_version_reported) {
+            $().uxmessage('notice', "Firmware v" + status.firmver);
+            $('#firmware_version').html(status.firmver);
+            firmware_version_reported = true;
           }
         }
-        if (status.firmver && !firmware_version_reported) {
-          $().uxmessage('notice', "Firmware v" + status.firmver);
-          $('#firmware_version').html(status.firmver);
-          firmware_version_reported = true;
+        var msg = status.error_report;
+        if (stop_and_resume_in_progress) {
+          // known cause, don't report
+          if (msg === 'stopped - serial_stop_request') {
+            msg = '';
+          }
         }
-      }
-      var msg = status.error_report;
-      if (stop_and_resume_in_progress) {
-        // known cause, don't report
-        if (msg === 'stopped - serial_stop_request') {
-          msg = '';
+        if (last_command_was_homing) {
+          // known cause, no status updates during homing
+          if (msg === 'last status update from driveboard is too old') {
+            msg = '';
+          }
         }
+        report_error(msg);
       }
-      if (last_command_was_homing) {
-        // known cause, no status updates during homing
-        if (msg === 'last status update from driveboard is too old') {
-          msg = '';
-        }
-      }
-      report_error(msg);
       // schedule next hardware poll
       setTimeout(function() {poll_hardware_status()}, 300);
     }).fail(function() {
       // lost connection to server
+      previous_status = {};
       report_error("connection to backend webserver lost");
       connect_btn_set_state(false);
       // schedule next hardware poll
