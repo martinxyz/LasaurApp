@@ -4,7 +4,7 @@ import tornado.options
 import tornado.web
 import tornado.websocket
 from tornado.ioloop import PeriodicCallback
-from tornado import gen
+from tornado import gen, locks
 
 import build
 import flash
@@ -110,6 +110,8 @@ class ConfigHandler(tornado.web.RequestHandler):
 
 @tornado.web.stream_request_body
 class GcodeHandler(tornado.web.RequestHandler):
+    gcode_sender_lock = locks.Lock()
+
     def initialize(self, board):
         self.board = board
 
@@ -117,11 +119,13 @@ class GcodeHandler(tornado.web.RequestHandler):
         self.set_header("Access-Control-Allow-Origin", "*")
 
     def prepare(self):
+        self.unprocessed = b''
+        self.error = None
+        self.lineno = 0
+
         mtype = self.request.headers.get('Content-Type')
         if not mtype.startswith('text'):
             raise tornado.web.HTTPError(400, 'gcode POST handler supports only text/plain content-type')
-        self.unprocessed = b''
-        self.error = None
 
     @gen.coroutine
     def data_received(self, chunk):
@@ -131,17 +135,48 @@ class GcodeHandler(tornado.web.RequestHandler):
         for line in lines:
             # stay responsive to status updates
             yield gen.moment
-            self.process_one_line(line)
+            yield self.process_one_line(line)
 
+    @gen.coroutine
     def process_one_line(self, line):
         if self.error:
             return
+
         line = line.decode('utf-8', 'ignore').strip()
-        if line:
+        self.lineno += 1
+
+        if self.lineno == 1:
+            if line.startswith('!'):
+                # stop, pause, unpause:
+                # do not wait until previous job is fully queued
+                resp = self.board.special_line(line)
+                yield GcodeHandler.gcode_sender_lock.acquire()
+            elif line.startswith('~'):
+                # recover from stop or error:
+                # wait until previous job stops adding new commands to the queue
+                yield GcodeHandler.gcode_sender_lock.acquire()
+
+                # wait until firmware stops executing (otherwise, we risk error in buffer tracking)
+                self.board.get_status()  # trigger status update, just in case
+                yield gen.sleep(0.8)  # make sure we have an updated status
+                while not self.board.get_status()['ready']:
+                    logging.info('resume command: waiting for ready status...')
+                    # XXX need to unpause() here too?
+                    yield gen.sleep(0.8)
+
+                # finally, resume
+                resp = self.board.special_line(line)
+            else:
+                # no special command:
+                # just wait until previous job is fully queued
+                yield GcodeHandler.gcode_sender_lock.acquire()
+                resp = self.board.gcode_line(line)
+        else:
             resp = self.board.gcode_line(line)
-            if resp.startswith('error:'):
-                logging.warning(resp[6:])
-                self.error = resp[6:]
+
+        if resp.startswith('error:'):
+            self.error = 'line %d: %s' % (self.lineno, resp[6:])
+            logging.warning(self.error)
 
     def post(self):
         # execute final piece if newline was missing
@@ -150,3 +185,7 @@ class GcodeHandler(tornado.web.RequestHandler):
         if self.error:
             self.set_status(400)
             self.write(self.error)
+
+    def on_finish(self):
+        if self.lineno > 0:
+            GcodeHandler.gcode_sender_lock.release()
