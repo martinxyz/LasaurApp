@@ -14,7 +14,8 @@ angular.module('app.admin', ['app.core'])
     vm.haveStatusUpdates = true;
     vm.lastStatusMessageReceived = true;
 
-    var statusStream = $websocket('ws://' + window.location.host + '/status/ws');
+    var protocol = window.location.protocol.replace('http', 'ws')
+    var statusStream = $websocket(protocol + '//' + window.location.host + '/status/ws');
     statusStream.onMessage(function(message) {
         vm.status = JSON.parse(message.data);
         vm.lastStatusMessageReceived = true;
