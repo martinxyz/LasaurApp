@@ -121,7 +121,7 @@ angular.module('app.raster', ['app.core'])
     vm.sendGcode = function(gcode) {
         return $http({
             method: 'POST',
-            url: '/gcode',
+            url: 'gcode',
             data: gcode,
             headers: {
                 'Content-Type': 'text/plain'
@@ -215,7 +215,8 @@ angular.module('app.raster', ['app.core'])
     vm.lastStatusMessageReceived = true;
 
     var protocol = window.location.protocol.replace('http', 'ws')
-    var statusStream = $websocket(protocol + '//' + window.location.host + '/status/ws');
+    var statusStream = $websocket(protocol + '//' + window.location.host + window.location.pathname + 'ws/status');
+
     statusStream.onMessage(function(message) {
         vm.status = JSON.parse(message.data);
         vm.lastStatusMessageReceived = true;
