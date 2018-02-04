@@ -343,9 +343,9 @@ function writePassesWidget() {
     if (DataHandler.getAllColors().length == 1) {
       $('#passes > div:nth-child(1) .colorbtns').children('button').addClass('active')
       $().uxmessage('notice', "assigned to pass1");
-      readPassesWidget();
     }
   }
+  readPassesWidget();
 }
 
 
