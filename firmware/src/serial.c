@@ -48,7 +48,6 @@
 uint8_t rx_buffer[RX_BUFFER_SIZE];
 volatile uint8_t rx_buffer_head = 0;
 volatile uint8_t rx_buffer_tail = 0;
-volatile uint8_t rx_buffer_open_slots = RX_BUFFER_SIZE - 1;
 
 uint8_t tx_buffer[TX_BUFFER_SIZE];
 volatile uint8_t tx_buffer_head = 0;
@@ -157,7 +156,6 @@ uint8_t serial_read() {
   cli();
   uint8_t data = rx_buffer[rx_buffer_tail];
   if (++rx_buffer_tail == RX_BUFFER_SIZE) {rx_buffer_tail = 0;}  // increment  
-  rx_buffer_open_slots++;
   rx_buffer_processed++;
   if (rx_buffer_processed == RX_CHUNK_SIZE) {
     notify_chunk_processed++;
@@ -219,7 +217,6 @@ ISR(USART_RX_vect) {
     } else {
       rx_buffer[head] = data;
       rx_buffer_head = next_head;
-      rx_buffer_open_slots--;
     }
   }
 }
