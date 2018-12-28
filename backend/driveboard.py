@@ -451,7 +451,7 @@ class Driveboard:
             self.last_status_request = time.time()
 
     def _on_startup_greeting(self, value):
-        if abs(value - 200.456) > 0.001:
+        if abs(value - 201.456) > 0.001:
             self.disconnect('Got invalid firmware startup greeting: %r' % value)
             return
         if self.greeting_timeout is None:
